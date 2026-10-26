@@ -11,13 +11,25 @@ import { LauncherDialog } from './launcher_dialog.js';
 
 const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 const STICKY_KEYS_KEY = 'stickykeys-enable';
+const STYLE_KEYS = new Set([
+    'dialog-width', 'result-icon-size', 'show-dialog-border',
+    'border-width', 'border-radius', 'border-color-rgba', 'background-opacity',
+]);
 
 export class LauncherManager {
     constructor(extension) {
         this.extension = extension;
         this.ext_settings = extension.getSettings();
         this.settings = new ExtensionSettings(this.ext_settings);
-        this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+        this._a11y_settings = null;
+        try {
+            const src = Gio.SettingsSchemaSource.get_default();
+            if (src?.lookup(A11Y_SCHEMA, true)) {
+                this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+            }
+        } catch (_e) {
+            this._a11y_settings = null;
+        }
         this._current_style = null;
         this._orig_overlay_key_id = 0;
         this._overlay_key_id = 0;
@@ -30,8 +42,8 @@ export class LauncherManager {
             this._bind_overlay_key();
             this._connect_settings();
         } catch (err) {
+            console.error('[tide] failed to initialize LauncherManager:', err);
             this.destroy();
-            throw err;
         }
     }
 
@@ -74,14 +86,17 @@ export class LauncherManager {
         this.ext_settings.connectObject('changed', (_s, key) => {
             if (key === 'overlay-key-action') {
                 if (this._launcher?.visible) this._launcher.hide();
-                if (Main.overview.visibleTarget) Main.overview.hide();
                 return;
             }
             if (key === 'sort-by-usage') {
                 this._launcher?.reload_apps();
                 return;
             }
-            this._schedule_style_refresh();
+            if (STYLE_KEYS.has(key)) {
+                this._schedule_style_refresh();
+                return;
+            }
+            if (this._launcher?.visible) this._launcher.refresh_results();
         }, this);
     }
 
@@ -122,11 +137,15 @@ export class LauncherManager {
             this._style_timer_id = 0;
         }
         if (this._overlay_key_id > 0) {
-            global.display.disconnect(this._overlay_key_id);
+            if (GObject.signal_handler_is_connected(global.display, this._overlay_key_id)) {
+                global.display.disconnect(this._overlay_key_id);
+            }
             this._overlay_key_id = 0;
         }
         if (this._orig_overlay_key_id > 0) {
-            global.display.unblock_signal_handler(this._orig_overlay_key_id);
+            if (GObject.signal_handler_is_connected(global.display, this._orig_overlay_key_id)) {
+                global.display.unblock_signal_handler(this._orig_overlay_key_id);
+            }
             this._orig_overlay_key_id = 0;
         }
         this.ext_settings?.disconnectObject(this);

@@ -21,12 +21,13 @@ export function parse_rgba(input) {
 
     if (s.startsWith('#')) {
         const hex = s.slice(1);
-        if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+        if (/^[0-9a-fA-F]{3,4}$/.test(hex)) {
+            const alpha = hex.length === 4 ? parseInt(hex[3] + hex[3], 16) / 255 : 1.0;
             return {
                 red: clamp_byte(parseInt(hex[0] + hex[0], 16)),
                 green: clamp_byte(parseInt(hex[1] + hex[1], 16)),
                 blue: clamp_byte(parseInt(hex[2] + hex[2], 16)),
-                alpha: 1.0,
+                alpha: clamp_alpha(alpha),
             };
         }
         if (/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(hex)) {
@@ -40,7 +41,8 @@ export function parse_rgba(input) {
         }
     }
 
-    const match = s.match(/^rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)$/i);
+    const num = '[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:e[-+]?\\d+)?';
+    const match = s.match(new RegExp(`^rgba?\\(\\s*(${num})\\s*,\\s*(${num})\\s*,\\s*(${num})(?:\\s*,\\s*(${num}))?\\s*\\)$`, 'i'));
     if (match) {
         return {
             red: clamp_byte(parseFloat(match[1])),

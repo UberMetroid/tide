@@ -7,11 +7,11 @@ Tide (`tide@ubermetroid.github.io`) is built on four uncompromising engineering 
 1. **Linus Torvalds' "Good Taste"**: Eliminate special-case branching through clean data representation (immutable frozen enums, unified application and open-window candidate records, and pure fuzzy match scorers).
 2. **UNIX Philosophy**: Each module ("page") does one thing well, composes cleanly via explicit ES2022 imports, and avoids hidden global state.
 3. **NASA JPL Power-of-10 Safety Rules**:
-   - All installed-application scans (`search_engine.js`) and workspace open-window enumerations enforce explicit upper iteration bounds (`MAX_INDEXED_APPS = 512`, `MAX_OPEN_WINDOWS = 128`).
+   - All installed-application scans (`search_engine.js`) and workspace open-window enumerations enforce explicit upper iteration bounds (`MAX_INDEXED_APPS = 512`, `MAX_OPEN_WINDOWS = 128`, `MAX_SCANNED_WORKSPACES = 32`).
    - Zero dynamic code evaluation (`eval`, `Function`) and zero external subprocesses (`Gio.Subprocess`, `GLib.spawn_*`) in the compositor.
    - All `GLib.timeout_add` sources are deterministically named via `GLib.Source.set_name_by_id` and removed on teardown.
 4. **OWASP Zero-Trust & Multi-Distro Security**:
-   - Zero shell subprocesses or network calls; integrates natively with `systemd-logind` lock/suspend via `"session-modes": ["user"]`, `org.gnome.desktop.a11y.keyboard` sticky-keys checks, and Mutter `overlay-key` signal blocking across Fedora, Debian, Ubuntu, Arch, openSUSE, and NixOS.
+   - Zero shell subprocesses or network calls; integrates natively with GNOME Shell lock/suspend `disable()` teardown, `org.gnome.desktop.a11y.keyboard` sticky-keys checks, and Mutter `overlay-key` signal blocking across Fedora, Debian, Ubuntu, Arch, openSUSE, and NixOS.
    - All CSS color inputs (`extension/ui/settings/color.js`) are clamped and sanitized before style generation.
 
 ---

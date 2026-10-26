@@ -3,6 +3,7 @@
 
 export const MAX_INDEXED_APPS = 512;
 export const MAX_OPEN_WINDOWS = 128;
+export const MAX_SCANNED_WORKSPACES = 32;
 
 export function normalize_query(text) {
     if (typeof text !== 'string') return '';
@@ -25,8 +26,8 @@ export function score_candidate_match(candidate, query) {
     if (sub_idx >= 0) return 600 - Math.min(80, sub_idx);
     if (id.startsWith(q) || id.includes(`.${q}`)) return 480;
     if (kw.includes(q)) return 420;
+    if (id.includes(q)) return 360;
     if (desc.includes(q)) return 320;
-    if (id.includes(q)) return 240;
 
     let qi = 0;
     let gaps = 0;
@@ -46,6 +47,7 @@ export function collect_installed_apps(app_system, app_usage, sort_by_usage = tr
     const seen = new Set();
     const out = [];
     const limit = Math.min(raw.length, MAX_INDEXED_APPS);
+    let err_count = 0;
 
     for (let i = 0; i < limit; i += 1) {
         const info = raw[i];
@@ -67,7 +69,10 @@ export function collect_installed_apps(app_system, app_usage, sort_by_usage = tr
                 app,
                 window: null,
             });
-        } catch (_e) { /* skip malformed desktop entry */ }
+        } catch (err) {
+            if (err_count < 3) console.warn(`[tide] skip malformed app entry: ${err}`);
+            err_count += 1;
+        }
     }
 
     if (sort_by_usage && app_usage && typeof app_usage.compare === 'function') {
@@ -80,7 +85,7 @@ export function collect_installed_apps(app_system, app_usage, sort_by_usage = tr
 
 export function collect_open_windows(workspace_manager, window_tracker) {
     if (!workspace_manager || typeof workspace_manager.get_n_workspaces !== 'function') return [];
-    const n_ws = Math.min(32, workspace_manager.get_n_workspaces());
+    const n_ws = Math.min(MAX_SCANNED_WORKSPACES, workspace_manager.get_n_workspaces());
     const out = [];
     const seen_win = new Set();
 
@@ -95,9 +100,10 @@ export function collect_open_windows(workspace_manager, window_tracker) {
             if (!title) continue;
             const app = window_tracker?.get_window_app?.(win) ?? null;
             const app_name = app?.get_name?.() || win.get_wm_class?.() || 'Window';
+            const seq = win.get_stable_sequence?.() ?? out.length;
             out.push({
                 kind: 'window',
-                id: `window:${w_idx}:${title}`,
+                id: `window:${w_idx}:${seq}:${title}`,
                 name: title,
                 description: `${app_name} — Workspace ${w_idx + 1}`,
                 keywords: `${app_name} workspace ${w_idx + 1}`,

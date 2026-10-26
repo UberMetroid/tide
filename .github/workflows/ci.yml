@@ -34,7 +34,7 @@ jobs:
       - name: Verify GNOME Shell GIR typelibs & compositor module syntax
         run: |
           for f in extension/*.js extension/launcher/*.js extension/ui/*.js extension/ui/settings/*.js; do
-            node --check "$f"
+            node --input-type=module --check < "$f"
           done
 
       - name: Pack EGO extension zip bundle

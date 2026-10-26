@@ -121,8 +121,11 @@ export function build_launcher_styling_page(ext_settings, settings, signals) {
     color_btn.connect('color-set', () => settings.set_border_color_rgba(color_btn.get_rgba().to_string()));
     color_row.add_suffix(color_btn);
 
-    const preset_labels = BORDER_PRESETS.map(([label]) => label);
-    const match_preset = (color) => BORDER_PRESETS.findIndex(([, c]) => format_rgba(parse_rgba(c)) === color);
+    const preset_labels = [...BORDER_PRESETS.map(([label]) => label), 'Custom Color'];
+    const match_preset = (color) => {
+        const idx = BORDER_PRESETS.findIndex(([, c]) => format_rgba(parse_rgba(c)) === color);
+        return idx >= 0 ? idx : BORDER_PRESETS.length;
+    };
     const [preset_row, preset_combo] = make_combo_row(
         'Quick Color Presets',
         'One-click color presets matching Kelp active window borders, Reef dock, and Coral folders',

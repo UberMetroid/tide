@@ -31,10 +31,18 @@ function clamp_int(v, min, max, fallback) {
 export class ExtensionSettings {
     constructor(gio_settings) {
         this.gio = gio_settings;
+        this._schema = gio_settings?.settings_schema ?? null;
+        this._keys = new Map();
     }
 
     _has(key) {
-        return Boolean(this.gio && this.gio.settings_schema?.has_key(key));
+        if (!this.gio || !this._schema) return false;
+        let ok = this._keys.get(key);
+        if (ok === undefined) {
+            ok = Boolean(this._schema.has_key(key));
+            this._keys.set(key, ok);
+        }
+        return ok;
     }
 
     _read(spec) {
@@ -53,25 +61,56 @@ export class ExtensionSettings {
     _write(spec, val) {
         if (!this._has(spec.key)) return;
         if (spec.type === 'bool') {
-            this.gio.set_boolean(spec.key, Boolean(val));
+            const next = Boolean(val);
+            if (this.gio.get_boolean(spec.key) !== next) this.gio.set_boolean(spec.key, next);
         } else if (spec.type === 'int') {
             const clamped = clamp_int(val, spec.min, spec.max, spec.def);
             if (this.gio.get_int(spec.key) !== clamped) this.gio.set_int(spec.key, clamped);
         } else if (spec.type === 'enum') {
-            this.gio.set_string(spec.key, spec.values.includes(val) ? val : spec.def);
+            const next = spec.values.includes(val) ? val : spec.def;
+            if (this.gio.get_string(spec.key) !== next) this.gio.set_string(spec.key, next);
         } else {
-            this.gio.set_string(spec.key, format_rgba(parse_rgba(val)));
+            const next = format_rgba(parse_rgba(val));
+            if (this.gio.get_string(spec.key) !== next) this.gio.set_string(spec.key, next);
         }
     }
 
     reset_defaults() {
         for (const spec of Object.values(SCHEMA_SPEC)) {
-            this._write(spec, spec.def);
+            if (!this._has(spec.key)) continue;
+            if (typeof this.gio.reset === 'function') this.gio.reset(spec.key);
+            else this._write(spec, spec.def);
         }
     }
-}
 
-for (const [prop, spec] of Object.entries(SCHEMA_SPEC)) {
-    ExtensionSettings.prototype[prop] = function () { return this._read(spec); };
-    ExtensionSettings.prototype[`set_${prop}`] = function (v) { this._write(spec, v); };
+    overlay_key_action() { return this._read(SCHEMA_SPEC.overlay_key_action); }
+    set_overlay_key_action(v) { this._write(SCHEMA_SPEC.overlay_key_action, v); }
+    max_results() { return this._read(SCHEMA_SPEC.max_results); }
+    set_max_results(v) { this._write(SCHEMA_SPEC.max_results, v); }
+    search_open_windows() { return this._read(SCHEMA_SPEC.search_open_windows); }
+    set_search_open_windows(v) { this._write(SCHEMA_SPEC.search_open_windows, v); }
+    sort_by_usage() { return this._read(SCHEMA_SPEC.sort_by_usage); }
+    set_sort_by_usage(v) { this._write(SCHEMA_SPEC.sort_by_usage, v); }
+    show_descriptions() { return this._read(SCHEMA_SPEC.show_descriptions); }
+    set_show_descriptions(v) { this._write(SCHEMA_SPEC.show_descriptions, v); }
+    show_shortcut_badges() { return this._read(SCHEMA_SPEC.show_shortcut_badges); }
+    set_show_shortcut_badges(v) { this._write(SCHEMA_SPEC.show_shortcut_badges, v); }
+    clear_search_on_open() { return this._read(SCHEMA_SPEC.clear_search_on_open); }
+    set_clear_search_on_open(v) { this._write(SCHEMA_SPEC.clear_search_on_open, v); }
+    close_on_outside_click() { return this._read(SCHEMA_SPEC.close_on_outside_click); }
+    set_close_on_outside_click(v) { this._write(SCHEMA_SPEC.close_on_outside_click, v); }
+    dialog_width() { return this._read(SCHEMA_SPEC.dialog_width); }
+    set_dialog_width(v) { this._write(SCHEMA_SPEC.dialog_width, v); }
+    result_icon_size() { return this._read(SCHEMA_SPEC.result_icon_size); }
+    set_result_icon_size(v) { this._write(SCHEMA_SPEC.result_icon_size, v); }
+    show_dialog_border() { return this._read(SCHEMA_SPEC.show_dialog_border); }
+    set_show_dialog_border(v) { this._write(SCHEMA_SPEC.show_dialog_border, v); }
+    border_width() { return this._read(SCHEMA_SPEC.border_width); }
+    set_border_width(v) { this._write(SCHEMA_SPEC.border_width, v); }
+    border_radius() { return this._read(SCHEMA_SPEC.border_radius); }
+    set_border_radius(v) { this._write(SCHEMA_SPEC.border_radius, v); }
+    border_color_rgba() { return this._read(SCHEMA_SPEC.border_color_rgba); }
+    set_border_color_rgba(v) { this._write(SCHEMA_SPEC.border_color_rgba, v); }
+    background_opacity() { return this._read(SCHEMA_SPEC.background_opacity); }
+    set_background_opacity(v) { this._write(SCHEMA_SPEC.background_opacity, v); }
 }

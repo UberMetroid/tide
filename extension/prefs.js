@@ -138,10 +138,11 @@ export default class TidePreferences extends ExtensionPreferences {
         window.add(build_launcher_and_search_page(ext_settings, settings, signals));
         window.add(build_launcher_styling_page(ext_settings, settings, signals));
         window.add(build_about_page(this.metadata?.['version-name']));
-        window.connect('close-request', () => {
+        const cleanup = () => {
             for (const [obj, sig] of signals) obj.disconnect(sig);
             signals.length = 0;
-            return false;
-        });
+        };
+        window.connect('close-request', () => { cleanup(); return false; });
+        window.connect('destroy', cleanup);
     }
 }

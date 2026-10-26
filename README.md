@@ -23,7 +23,7 @@ Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-
 | Feature | Default | Why It Matters |
 | :--- | :--- | :--- |
 | **Instant Super-Key Modal Launcher** | **Active (`launcher`)** | Press **Super** to open or close Tide immediately without opening the full GNOME Overview or requiring Pop Shell / external `pop-launcher` daemons. |
-| **Open-Window & App Fuzzy Search** | **Active** | Searches both installed applications (`Shell.AppSystem` + `Shell.AppUsage` frequency) and open windows across all workspaces so you can jump straight to a running window or launch a new app. |
+| **Open-Window & App Fuzzy Search** | **Active** | Displays top installed applications (`Shell.AppSystem` + `Shell.AppUsage` frequency) on open, and fuzzy-matches both installed applications and open windows across all workspaces as you type. |
 | **`Ctrl+1` .. `Ctrl+9` Quick Launch** | **Built-in** | Launch or focus any of the first nine results immediately with `Ctrl+1` through `Ctrl+9`, or navigate with `Up` / `Down` and `Enter`. |
 | **Stationary-Pointer Hover Guard** | **Built-in** | Keeps initial keyboard selection locked on the top result when the modal opens beneath a stationary mouse cursor until you intentionally move the pointer. |
 | **Ocean Cyan / Kelp / Reef Accent Border** | **Ocean Cyan (`2px`, `18px` radius)** | Features a customizable high-contrast accent border and selected-row highlight with 1-click presets (*Ocean Cyan*, *Kelp Emerald*, *Gruvbox Amber*, *Coral Red*). |
@@ -69,11 +69,11 @@ gnome-extensions prefs tide@ubermetroid.github.io
 
 ---
 
-## Multi-Distro & `systemd` Integration
+## Multi-Distro & Lifecycle Safety
 
 Tide works out of the box across **GNOME Shell 45, 46, 47, 48, 49, and 50** on **Fedora, Debian, Ubuntu, Arch Linux, openSUSE, and NixOS**:
 
-- **`systemd-logind` Lock & Suspend Lifecycle**: Declares `"session-modes": ["user"]` so the modal launcher cleanly closes, unblocks GNOME Shell's default `overlay-key` handler, restores `Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW)`, cancels any pending `[tide] style-refresh` timer, and unloads its stylesheet on screen lock or disable.
+- **Screen Lock & Extension Disable Lifecycle**: On screen lock or extension `disable()`, the modal launcher cleanly closes, unblocks GNOME Shell's default `overlay-key` handler, restores `Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW)`, cancels any pending `[tide] style-refresh` timer, and unloads its stylesheet.
 - **Accessibility & Sticky-Keys Respect**: Queries `org.gnome.desktop.a11y.keyboard` (`stickykeys-enable`) before intercepting `overlay-key` so accessibility modifier latching works uninterrupted.
 - **Zero Subprocesses or Telemetry**: Never spawns external processes (`GLib.spawn_*` / `Gio.Subprocess`) or makes network calls.
 

@@ -6,7 +6,7 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { ModalDialog } from 'resource:///org/gnome/shell/ui/modalDialog.js';
-import * as Util from 'resource:///org/gnome/shell/misc/util.js';
+import { ensureActorVisibleInScrollView } from 'resource:///org/gnome/shell/misc/animationUtils.js';
 import {
     build_dialog_surface_css, build_entry_focus_css,
     build_selected_row_css, compute_scroll_height,
@@ -75,7 +75,10 @@ export class LauncherDialog {
         this._text_id = ct.connect('text-changed', () => this.refresh_results());
         this._act_id = ct.connect('activate', () => this._activate_at(this._selected_index));
         this._ekey_id = ct.connect('key-press-event', (_a, ev) => this._on_key_press(ev));
-        this._dkey_id = this._dialog.connect('key-press-event', (_a, ev) => this._on_key_press(ev));
+        this._dkey_id = this._dialog.connect('key-press-event', (_a, ev) => {
+            if (this._entry?.clutter_text?.has_key_focus()) return Clutter.EVENT_PROPAGATE;
+            return this._on_key_press(ev);
+        });
         this._dbtn_id = this._dialog.connect('button-press-event', (_a, ev) => this._on_button_press(ev));
         this._dcls_id = this._dialog.connect('closed', () => this._on_closed());
         this._inst_id = this._app_system.connect('installed-changed', () => this.reload_apps());
@@ -83,9 +86,10 @@ export class LauncherDialog {
 
     sync_style() {
         if (!this._dialog || !this.settings) return;
-        this._dialog.contentLayout.width = this.settings.dialog_width();
+        this._dialog.contentLayout.width = Math.max(416, this.settings.dialog_width() - 32);
         this._dialog.contentLayout.spacing = 12;
-        const surface = this._dialog.dialogLayout || this._dialog;
+        const layout = this._dialog.dialogLayout;
+        const surface = layout?._dialog || layout?.get_first_child?.() || layout || this._dialog;
         surface.set_style(build_dialog_surface_css(
             this.settings.show_dialog_border(), this.settings.border_width(),
             this.settings.border_radius(), this.settings.border_color_rgba(),
@@ -110,8 +114,11 @@ export class LauncherDialog {
         this.sync_style();
         if (this.settings.clear_search_on_open()) this._entry.set_text('');
         this.refresh_results();
-        this._dialog.open(global.get_current_time(), false);
-        this._entry.grab_key_focus();
+        if (this._dialog.open()) {
+            this._entry.grab_key_focus();
+        } else {
+            this._restore_overlay_key_mode();
+        }
     }
 
     hide() {
@@ -129,17 +136,9 @@ export class LauncherDialog {
         const open_wins = this.settings.search_open_windows()
             ? collect_open_windows(global.workspace_manager, this._window_tracker)
             : [];
-        const shell_ids = [];
-        if (query && query.trim().length > 0 && typeof Shell.AppSystem.search === 'function') {
-            try {
-                for (const group of Shell.AppSystem.search(query.trim())) {
-                    for (const id of group) shell_ids.push(id);
-                }
-            } catch (_e) { /* fallback to pure scorer */ }
-        }
 
         this._results = rank_launcher_results(
-            this._apps, open_wins, query, this.settings.max_results(), shell_ids,
+            this._apps, open_wins, query, this.settings.max_results(), null,
         );
         this._selected_index = -1;
         this._scroll.height = compute_scroll_height(this._results.length);
@@ -180,9 +179,8 @@ export class LauncherDialog {
             if (i === this._selected_index) { btn.add_style_class_name('selected'); btn.set_style(sel_css); }
             else { btn.remove_style_class_name('selected'); btn.set_style(null); }
         }
-        if (ensure_visible) {
-            try { Util.ensureActorVisibleInScrollView(this._scroll, this._buttons[this._selected_index]); }
-            catch (_e) { /* actor not yet allocated */ }
+        if (ensure_visible && this._buttons[this._selected_index]) {
+            ensureActorVisibleInScrollView(this._scroll, this._buttons[this._selected_index]);
         }
     }
 
@@ -198,7 +196,9 @@ export class LauncherDialog {
         }
         if (sym === Clutter.KEY_Up) { this._select(this._selected_index - 1, true); return Clutter.EVENT_STOP; }
         if (sym === Clutter.KEY_Down) { this._select(this._selected_index + 1, true); return Clutter.EVENT_STOP; }
-        if ((state & Clutter.ModifierType.CONTROL_MASK) !== 0 && sym >= Clutter.KEY_1 && sym <= Clutter.KEY_9) {
+        const mods = state & Clutter.ModifierType.MODIFIER_MASK;
+        const non_lock = mods & ~(Clutter.ModifierType.LOCK_MASK | Clutter.ModifierType.MOD2_MASK);
+        if (non_lock === Clutter.ModifierType.CONTROL_MASK && sym >= Clutter.KEY_1 && sym <= Clutter.KEY_9) {
             this._activate_at(sym - Clutter.KEY_1);
             return Clutter.EVENT_STOP;
         }
@@ -222,7 +222,6 @@ export class LauncherDialog {
         this.hide();
         try {
             if (item.kind === 'window' && item.window) {
-                item.window.get_workspace?.()?.activate?.(global.get_current_time());
                 Main.activateWindow(item.window);
             } else if (item.app) {
                 item.app.activate();

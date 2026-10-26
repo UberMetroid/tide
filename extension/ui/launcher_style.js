@@ -5,7 +5,9 @@ import { format_rgba, parse_rgba } from './settings/color.js';
 
 export function build_dialog_surface_css(show_border, border_width, border_radius, border_color_rgba, bg_opacity) {
     const r = Math.max(0, Math.min(36, Math.round(Number(border_radius) || 0)));
-    const op = Math.max(0.6, Math.min(1.0, (Number(bg_opacity) || 96) / 100));
+    const raw_op = Number(bg_opacity);
+    const pct = Number.isFinite(raw_op) ? raw_op : 96;
+    const op = Math.max(0.6, Math.min(1.0, pct / 100));
     const op_str = Math.round(op * 100) / 100;
     const bg = `background-color: rgba(18, 28, 38, ${op_str});`;
     if (!show_border) {
@@ -29,8 +31,11 @@ export function build_entry_focus_css(show_border, border_color_rgba) {
 
 export function build_selected_row_css(border_color_rgba) {
     const parsed = parse_rgba(border_color_rgba);
-    return `background-color: rgba(${parsed.red}, ${parsed.green}, ${parsed.blue}, 0.20); ` +
-        `border-color: rgba(${parsed.red}, ${parsed.green}, ${parsed.blue}, 0.55);`;
+    const a_scale = Number.isFinite(parsed.alpha) ? Math.max(0.25, Math.min(1.0, parsed.alpha)) : 1.0;
+    const bg_a = (0.20 * a_scale).toFixed(2);
+    const bdr_a = (0.55 * a_scale).toFixed(2);
+    return `background-color: rgba(${parsed.red}, ${parsed.green}, ${parsed.blue}, ${bg_a}); ` +
+        `border-color: rgba(${parsed.red}, ${parsed.green}, ${parsed.blue}, ${bdr_a});`;
 }
 
 export function compute_scroll_height(result_count, row_height = 56, max_height = 420) {
