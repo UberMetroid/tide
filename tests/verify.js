@@ -166,14 +166,14 @@ async function verify_behavioral_and_gtk_suite() {
         assert(build_dialog_surface_css(false, 2, 18, 'rgb(106,215,225)', 0).includes('rgba(18, 28, 38, 0.6)'), 'zero opacity clamps to 0.6');
         assert(build_entry_focus_css(true, 'rgb(106,215,225)') === 'border: 1px solid rgba(106, 215, 225, 1);', 'entry css');
         assert(build_selected_row_css('rgba(106,215,225,0.5)').includes('rgba(106, 215, 225, 0.10)'), 'selected row alpha scale');
-        assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 280 && compute_scroll_height(20) === 420, 'scroll height');
+        assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 300 && compute_scroll_height(20) === 420, 'scroll height');
 
         s.reset_defaults();
         assert(s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
 
         assert(normalize_query('  FireFox  ') === 'firefox' && normalize_query(null) === '', 'normalize_query');
         assert(format_shortcut_badge(0, true) === 'Ctrl+1' && format_shortcut_badge(9, true) === '' && format_shortcut_badge(0, false) === '', 'badge');
-        assert(is_pointer_stationary([10, 20], 10, 20) && !is_pointer_stationary([10, 20], 11, 20) && !is_pointer_stationary(null, 0, 0), 'hover guard');
+        assert(is_pointer_stationary([10, 20], 11, 21) && !is_pointer_stationary([10, 20], 14, 20) && !is_pointer_stationary(null, 0, 0), 'hover guard');
         const c_ff = { id: 'org.mozilla.firefox.desktop', name: 'Firefox', description: 'Web Browser', keywords: 'internet web' };
         const c_files = { id: 'org.gnome.Nautilus.desktop', name: 'Files', description: 'Access and organize files', keywords: 'folder manager' };
         assert(score_candidate_match(c_ff, 'firefox') === 1000, 'exact match score');
@@ -191,7 +191,8 @@ async function verify_behavioral_and_gtk_suite() {
             lookup_app: (id) => ({ get_id: () => id, get_name: () => (id === 'a.desktop' ? 'Alpha' : 'Beta'), get_description: () => `Desc ${id}` }),
         };
         const apps_alpha = collect_installed_apps(mock_sys, null, false);
-        assert(apps_alpha.length === 2 && apps_alpha[0].name === 'Alpha', 'collect_installed_apps alphabetical');
+        const apps_usage = collect_installed_apps(mock_sys, { compare: (a, b) => (a === 'b.desktop' ? -1 : (b === 'b.desktop' ? 1 : 0)) }, true);
+        assert(apps_alpha.length === 2 && apps_alpha[0].name === 'Alpha' && apps_usage[0].name === 'Beta', 'collect_installed_apps alpha & usage');
 
         const mock_wm = {
             get_n_workspaces: () => 2,
@@ -202,7 +203,7 @@ async function verify_behavioral_and_gtk_suite() {
         };
         const open_wins = collect_open_windows(mock_wm, null);
         assert(open_wins.length === 2 && open_wins[0].id === 'window:0:10' && open_wins[1].id === 'window:0:11', 'collect_open_windows unique ids');
-        assert(compute_scroll_height(5, true) === 280 && compute_scroll_height(5, false) === 210, 'scroll height descriptions toggle');
+        assert(compute_scroll_height(5, true) === 300 && compute_scroll_height(5, false) === 220, 'scroll height descriptions toggle');
 
         const ranked_empty = rank_launcher_results(apps_alpha, open_wins, '', 9), ranked_q = rank_launcher_results(apps_alpha, open_wins, 'tide repo', 9);
         assert(ranked_empty.length === 2 && ranked_empty[0].kind === 'app' && ranked_q.length === 2 && ranked_q[0].kind === 'window', 'rank_launcher_results');
@@ -247,7 +248,6 @@ async function verify_behavioral_and_gtk_suite() {
         }
     }
 }
-
 const js_files = [], dirs = [];
 walk_repo(REPO_ROOT, js_files, dirs);
 verify_page_rules_and_lint(js_files, dirs);

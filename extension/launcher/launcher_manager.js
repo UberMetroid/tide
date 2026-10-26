@@ -15,6 +15,9 @@ const STYLE_KEYS = new Set([
     'dialog-width', 'result-icon-size', 'show-dialog-border',
     'border-width', 'border-radius', 'border-color-rgba', 'background-opacity',
 ]);
+const RESULT_KEYS = new Set([
+    'max-results', 'search-open-windows', 'show-descriptions', 'show-shortcut-badges',
+]);
 
 export class LauncherManager {
     constructor(extension) {
@@ -36,8 +39,13 @@ export class LauncherManager {
             try {
                 if (Gio.SettingsSchemaSource.get_default()?.lookup(A11Y_SCHEMA, true)) {
                     this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+                } else {
+                    console.warn(`[tide] accessibility schema ${A11Y_SCHEMA} not found`);
                 }
-            } catch (_e) { this._a11y_settings = null; }
+            } catch (err) {
+                console.warn(`[tide] failed to load ${A11Y_SCHEMA}:`, err);
+                this._a11y_settings = null;
+            }
             this.load_theme();
             this._launcher = new LauncherDialog(extension, this.settings);
             this._bind_overlay_key();
@@ -73,7 +81,7 @@ export class LauncherManager {
 
     _bind_overlay_key() {
         const found_id = GObject.signal_handler_find(global.display, { signalId: 'overlay-key' });
-        if (found_id > 0) {
+        if (found_id > 0 && GObject.signal_handler_is_connected(global.display, found_id)) {
             this._orig_overlay_key_id = found_id;
             global.display.block_signal_handler(this._orig_overlay_key_id);
         } else {
@@ -99,7 +107,9 @@ export class LauncherManager {
                 this._schedule_style_refresh();
                 return;
             }
-            if (this._launcher?.visible) this._launcher.refresh_results();
+            if (RESULT_KEYS.has(key) && this._launcher?.visible) {
+                this._launcher.refresh_results();
+            }
         });
     }
 

@@ -7,7 +7,7 @@ export const MAX_SCANNED_WORKSPACES = 32;
 
 export function normalize_query(text) {
     if (typeof text !== 'string') return '';
-    return text.trim().toLocaleLowerCase();
+    return text.trim().toLowerCase();
 }
 
 export function score_candidate_match(candidate, query) {
@@ -15,8 +15,7 @@ export function score_candidate_match(candidate, query) {
     if (!q) return 1;
     const name = normalize_query(candidate?.name);
     const desc = normalize_query(candidate?.description);
-    const q_ascii = typeof query === 'string' ? query.trim().toLowerCase() : '';
-    const id = typeof candidate?.id === 'string' ? candidate.id.trim().toLowerCase() : '';
+    const id = normalize_query(candidate?.id);
     const kw = normalize_query(candidate?.keywords);
 
     if (name === q) return 1000;
@@ -25,9 +24,9 @@ export function score_candidate_match(candidate, query) {
     if (word_idx >= 0) return 720 - Math.min(80, word_idx);
     const sub_idx = name.indexOf(q);
     if (sub_idx >= 0) return 600 - Math.min(80, sub_idx);
-    if (q_ascii && (id.startsWith(q_ascii) || id.includes(`.${q_ascii}`))) return 480;
-    if (kw.includes(q)) return 420;
-    if (q_ascii && id.includes(q_ascii)) return 360;
+    if (id.startsWith(q) || id.includes(`.${q}`)) return 480;
+    if (kw === q || kw.startsWith(`${q} `) || kw.includes(` ${q}`)) return 420;
+    if (id.includes(q)) return 360;
     if (desc.includes(q)) return 320;
 
     let qi = 0;
@@ -52,10 +51,10 @@ export function collect_installed_apps(app_system, app_usage, sort_by_usage = tr
     const raw = app_system.get_installed() || [];
     const seen = new Set();
     const out = [];
-    const limit = Math.min(raw.length, MAX_INDEXED_APPS);
+    const raw_limit = Math.min(raw.length, MAX_INDEXED_APPS * 4);
     let err_count = 0;
 
-    for (let i = 0; i < limit; i += 1) {
+    for (let i = 0; i < raw_limit && out.length < MAX_INDEXED_APPS; i += 1) {
         const info = raw[i];
         try {
             const id = info?.get_id?.();
@@ -81,9 +80,14 @@ export function collect_installed_apps(app_system, app_usage, sort_by_usage = tr
         }
     }
 
+    let sorted = false;
     if (sort_by_usage && app_usage && typeof app_usage.compare === 'function') {
-        out.sort((a, b) => app_usage.compare(a.id, b.id));
-    } else {
+        try {
+            out.sort((a, b) => app_usage.compare(a.id, b.id));
+            sorted = true;
+        } catch (_e) { sorted = false; }
+    }
+    if (!sorted) {
         out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     }
     return out;
@@ -112,7 +116,7 @@ export function collect_open_windows(workspace_manager, window_tracker) {
                 id: `window:${w_idx}:${seq}`,
                 name: title,
                 description: `${app_name} — Workspace ${w_idx + 1}`,
-                keywords: `${app_name} workspace ${w_idx + 1}`,
+                keywords: `${app_name} workspace${w_idx + 1}`,
                 app,
                 window: win,
             });
@@ -158,5 +162,5 @@ export function format_shortcut_badge(index, show_badges = true) {
 
 export function is_pointer_stationary(guard_pos, cur_x, cur_y) {
     if (!Array.isArray(guard_pos) || guard_pos.length < 2) return false;
-    return guard_pos[0] === cur_x && guard_pos[1] === cur_y;
+    return Math.abs(guard_pos[0] - cur_x) <= 2 && Math.abs(guard_pos[1] - cur_y) <= 2;
 }

@@ -28,44 +28,41 @@ export class LauncherDialog {
         this._selected_index = -1;
         this._hover_guard_pos = null;
 
-        this._dialog = new ModalDialog({
-            styleClass: 'tide-launcher-dialog',
-            shellReactive: true,
-            destroyOnClose: false,
-            shouldFadeIn: false,
-            shouldFadeOut: false,
-        });
+        try {
+            this._dialog = new ModalDialog({
+                styleClass: 'tide-launcher-dialog', shellReactive: true,
+                destroyOnClose: false, shouldFadeIn: false, shouldFadeOut: false,
+            });
+            this._header = new St.BoxLayout({ style_class: 'tide-launcher-header', x_expand: true });
+            this._entry = new St.Entry({ style_class: 'tide-launcher-entry', can_focus: true, x_expand: true });
+            this._entry.set_hint_text('Type to search apps & open windows…');
+            this._prefs_btn = new St.Button({
+                style_class: 'tide-launcher-prefs-button', can_focus: true, accessible_name: 'Tide Preferences',
+                child: new St.Icon({ icon_name: 'preferences-system-symbolic', icon_size: 18 }),
+            });
+            this._prefs_btn.connect('clicked', () => {
+                this.hide();
+                try { this.extension?.openPreferences(); } catch (err) { console.warn('[tide] openPreferences failed:', err); }
+            });
+            this._header.add_child(this._entry);
+            this._header.add_child(this._prefs_btn);
+            this._dialog.contentLayout.add_child(this._header);
 
-        this._header = new St.BoxLayout({ style_class: 'tide-launcher-header', x_expand: true });
-        this._entry = new St.Entry({ style_class: 'tide-launcher-entry', can_focus: true, x_expand: true });
-        this._entry.set_hint_text('Type to search apps & open windows…');
-        this._prefs_btn = new St.Button({
-            style_class: 'tide-launcher-prefs-button',
-            can_focus: false,
-            accessible_name: 'Tide Preferences',
-            child: new St.Icon({ icon_name: 'preferences-system-symbolic', icon_size: 18 }),
-        });
-        this._prefs_btn.connect('clicked', () => {
-            this.hide();
-            try { this.extension?.openPreferences(); } catch (_e) { /* ignore */ }
-        });
-        this._header.add_child(this._entry);
-        this._header.add_child(this._prefs_btn);
-        this._dialog.contentLayout.add_child(this._header);
+            this._list = new St.BoxLayout({ style_class: 'tide-launcher-list', vertical: true, x_expand: true });
+            this._scroll = new St.ScrollView({
+                style_class: 'tide-launcher-scroll', x_expand: true,
+                hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            });
+            this._scroll.set_child(this._list);
+            this._dialog.contentLayout.add_child(this._scroll);
 
-        this._list = new St.BoxLayout({ style_class: 'tide-launcher-list', vertical: true, x_expand: true });
-        this._scroll = new St.ScrollView({
-            style_class: 'tide-launcher-scroll',
-            hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC,
-            x_expand: true,
-        });
-        this._scroll.set_child(this._list);
-        this._dialog.contentLayout.add_child(this._scroll);
-
-        this._bind_signals();
-        this.sync_style();
-        this.reload_apps();
+            this._bind_signals();
+            this.sync_style();
+            this.reload_apps();
+        } catch (err) {
+            this.destroy();
+            throw err;
+        }
     }
 
     get visible() { return Boolean(this._dialog?.visible); }
@@ -81,7 +78,10 @@ export class LauncherDialog {
         });
         this._dbtn_id = this._dialog.connect('button-press-event', (_a, ev) => this._on_button_press(ev));
         this._dcls_id = this._dialog.connect('closed', () => this._on_closed());
-        this._inst_id = this._app_system.connect('installed-changed', () => this.reload_apps());
+        this._inst_id = this._app_system.connect('installed-changed', () => {
+            this._apps_dirty = true;
+            if (this.visible) this.reload_apps();
+        });
     }
 
     _get_surface_actor() {
@@ -110,6 +110,7 @@ export class LauncherDialog {
     reload_apps() {
         if (!this._app_system || !this.settings) return;
         this._apps = collect_installed_apps(this._app_system, this._app_usage, this.settings.sort_by_usage());
+        this._apps_dirty = false;
         if (this.visible) this.refresh_results();
     }
 
@@ -117,11 +118,14 @@ export class LauncherDialog {
         if (!this._dialog) return;
         if (Main.overview.visibleTarget) Main.overview.hide();
         Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.ALL);
-        this.sync_style();
-        if (this.settings.clear_search_on_open()) this._entry.set_text('');
-        this.refresh_results();
-        if (this._dialog.open()) this._entry.grab_key_focus();
-        else this._restore_overlay_key_mode();
+        try {
+            if (this._apps_dirty) this.reload_apps();
+            this.sync_style();
+            if (this.settings.clear_search_on_open()) this._entry.set_text('');
+            this.refresh_results();
+            if (this._dialog.open()) this._entry.grab_key_focus();
+            else this._restore_overlay_key_mode();
+        } catch (err) { this._restore_overlay_key_mode(); throw err; }
     }
 
     hide() { if (this._dialog?.visible) this._dialog.close(); }
@@ -146,16 +150,14 @@ export class LauncherDialog {
         if (this._results.length === 0) {
             this._list.add_child(new St.Label({
                 text: 'No matching applications or windows found',
-                style_class: 'tide-launcher-empty',
-                x_align: Clutter.ActorAlign.CENTER,
+                style_class: 'tide-launcher-empty', x_align: Clutter.ActorAlign.CENTER,
             }));
             return;
         }
 
         for (let i = 0; i < this._results.length; i += 1) {
             const btn = create_result_row(
-                this._results[i], i, this.settings,
-                (idx) => this._activate_at(idx),
+                this._results[i], i, this.settings, (idx) => this._activate_at(idx),
                 (idx) => {
                     const [cx, cy] = global.get_pointer();
                     if (is_pointer_stationary(this._hover_guard_pos, cx, cy)) return;
@@ -229,7 +231,7 @@ export class LauncherDialog {
         } catch (_e) { /* ignore activation failure */ }
     }
 
-    _on_closed() { this._selected_index = -1; this._restore_overlay_key_mode(); }
+    _on_closed() { this._selected_index = -1; this._results = []; this._restore_overlay_key_mode(); }
 
     _restore_overlay_key_mode() {
         Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
