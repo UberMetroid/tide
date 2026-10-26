@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tide — Super-Key Application & Open-Window Launcher for GNOME 45–50</title>
+  <meta name="description" content="Zero-subprocess, Wayland-native Super-Key Application & Open-Window Launcher for GNOME Shell 45–50 with fuzzy search, Ctrl+1..9 quick launch, and Kelp / Reef / Coral accent borders.">
+  <link rel="icon" type="image/png" href="brand/favicon-64.png" />
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --surface: #12161c;
+      --surface-alt: #181d25;
+      --border: #262e3b;
+      --tide: #30ba7f;
+      --coral: #ff4d4d;
+      --seabed: #fba86c;
+      --shoal: #5bc8af;
+      --reef: #6ad7e1;
+      --kelp: #2ee59d;
+      --text: #eef2f6;
+      --muted: #9aa5b4;
+      --mono: ui-monospace, "JetBrains Mono", "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Cantarell", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--tide); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(11, 13, 16, 0.88);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: 10px 0;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: block;
+    }
+    .brand-badge {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--tide);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 0.92rem;
+      flex-wrap: wrap;
+    }
+    .nav-links a { color: var(--muted); white-space: nowrap; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .hero { padding: 72px 0 56px; text-align: center; }
+    .hero-icon {
+      display: block;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 20px;
+      border-radius: 26px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(48, 186, 127, 0.24);
+    }
+    .eyebrow {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--tide);
+      background: rgba(48, 186, 127, 0.1);
+      border: 1px solid rgba(48, 186, 127, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      max-width: 860px;
+      margin: 0 auto 18px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.12rem;
+      max-width: 780px;
+      margin: 0 auto 32px;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--muted); text-decoration: none; }
+    .btn-primary {
+      background: var(--tide);
+      color: #04160e;
+      border-color: var(--tide);
+    }
+    .desktop-frame {
+      background: #07090b;
+      border: 2px solid var(--tide);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      text-align: left;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .search-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-top: 6px;
+      background: var(--surface);
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+    }
+    .result-row.active {
+      background: rgba(48, 186, 127, 0.14);
+      border-color: var(--tide);
+    }
+    .badge {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--tide);
+    }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 1.8rem; margin-bottom: 12px; }
+    .section-lead { color: var(--muted); margin-bottom: 28px; }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .card h3 { font-size: 1.15rem; margin-bottom: 10px; color: var(--text); }
+    .card p { color: var(--muted); font-size: 0.95rem; }
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      overflow-x: auto;
+      color: var(--tide);
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <img class="brand-icon" src="brand/favicon-64.png" width="28" height="28" alt="Tide" />
+        <span>Tide</span>
+        <span class="brand-badge">v1.0.1 · GNOME 45–50</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://ubermetroid.github.io/kelp/">Kelp Tiler</a>
+        <a href="https://ubermetroid.github.io/reef/">Reef Dock</a>
+        <a href="https://ubermetroid.github.io/shoal/">Shoal Tray</a>
+        <a href="https://ubermetroid.github.io/tuition-not-coffee">🎓 Tuition, Not Coffee</a>
+        <a href="https://github.com/UberMetroid/tide">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero" style="border-top: none;">
+      <img class="hero-icon" src="brand/icon-512.png" width="120" height="120" alt="Tide Icon" />
+      <span class="eyebrow">tide@ubermetroid.github.io · Super-Key Launcher · Zero Subprocesses</span>
+      <h1>Instant Super-Key Application &amp; Open-Window Launcher for GNOME 45–50</h1>
+      <p class="subtitle">
+        Press <strong>Super</strong> to summon a fast modal launcher with fuzzy application and cross-workspace open-window search, <code>Ctrl+1..Ctrl+9</code> direct shortcuts, Kelp / Reef / Coral accent borders, and a 3-tab Libadwaita Settings &amp; About dialog.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/UberMetroid/tide/releases/latest">⬇ Download Tide v1.0.1 (.zip)</a>
+        <a class="btn" href="https://github.com/UberMetroid/tide">⭐ Star on GitHub</a>
+        <a class="btn" href="https://ubermetroid.github.io/tuition-not-coffee">🎓 Tuition, Not Coffee — Help send my daughter to college</a>
+      </div>
+
+      <div class="desktop-frame">
+        <div class="search-bar">
+          <span>🔍 term_</span>
+          <span style="color: var(--muted);">⚙ Prefs</span>
+        </div>
+        <div class="result-row active">
+          <span>🪟 <strong>Terminal — ~/Projects/tide</strong> <small style="color: var(--muted);">· Workspace 1 (Open Window)</small></span>
+          <span class="badge">Ctrl+1</span>
+        </div>
+        <div class="result-row">
+          <span>🚀 <strong>GNOME Console</strong> <small style="color: var(--muted);">· Command Line Terminal</small></span>
+          <span class="badge">Ctrl+2</span>
+        </div>
+        <div class="result-row">
+          <span>🚀 <strong>Text Editor</strong> <small style="color: var(--muted);">· Edit text files</small></span>
+          <span class="badge">Ctrl+3</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>Engineered for Kelp, Reef, Shoal, Coral, Seabed &amp; Modern GNOME</h2>
+      <p class="section-lead">Derived from Pop Launcher Super-Key Standalone by icesx &amp; ManeLippert and upgraded with open-window switching, fuzzy subsequence scoring, and custom accent borders.</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Instant Super-Key Modal Launcher</h3>
+          <p>Press <strong>Super</strong> to open or close Tide immediately without triggering the full GNOME Overview or requiring external Pop Shell daemons, while respecting <code>stickykeys-enable</code> accessibility.</p>
+        </div>
+        <div class="card">
+          <h3>Open-Window &amp; App Fuzzy Search</h3>
+          <p>Searches both installed applications (ranked with <code>Shell.AppUsage</code>) and running windows across all workspaces so you can jump straight to an open window or launch a new app with <code>Ctrl+1..9</code>.</p>
+        </div>
+        <div class="card">
+          <h3>Kelp, Reef &amp; Coral Accent Borders</h3>
+          <p>Styles the launcher modal and active result row with a customizable high-contrast accent border and 1-click presets (<em>Ocean Cyan</em>, <em>Kelp Emerald</em>, <em>Gruvbox Amber</em>, <em>Coral Red</em>).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Quick Install</h2>
+      <p class="section-lead">Install from the latest GitHub Release bundle across Fedora, Debian, Ubuntu, Arch, openSUSE, and NixOS:</p>
+      <pre>gnome-extensions install --force tide@ubermetroid.github.io.shell-extension.zip
+gnome-extensions enable tide@ubermetroid.github.io</pre>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>
+        <strong>Tide</strong> (<code>tide@ubermetroid.github.io</code>) · Released under <a href="https://github.com/UberMetroid/tide/blob/main/LICENSE">GPL-3.0-or-later</a> · Derived from Pop Launcher Super-Key Standalone by icesx &amp; ManeLippert.<br>
+        <a href="https://github.com/UberMetroid/tide">⭐ Star on GitHub</a> · <a href="https://ubermetroid.github.io/tuition-not-coffee">🎓 Tuition, Not Coffee — Help send my daughter to college</a> · <a href="https://ubermetroid.github.io/kelp/">Kelp Auto-Tiler</a> · <a href="https://ubermetroid.github.io/reef/">Reef Dock</a> · <a href="https://ubermetroid.github.io/shoal/">Shoal Tray</a> · <a href="https://ubermetroid.github.io/coral/">Coral Grid</a> · <a href="https://ubermetroid.github.io/seabed/">Seabed Icons</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
