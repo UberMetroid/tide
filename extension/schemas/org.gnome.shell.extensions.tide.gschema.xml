@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="tide@ubermetroid.github.io">
+  <schema id="org.gnome.shell.extensions.tide" path="/org/gnome/shell/extensions/tide/">
+    <key name="overlay-key-action" type="s">
+      <default>'launcher'</default>
+      <summary>Super key action</summary>
+      <description>Controls the action of the overlay key (Super): launcher, overview, or app-grid</description>
+    </key>
+    <key name="max-results" type="i">
+      <range min="3" max="15"/>
+      <default>9</default>
+      <summary>Maximum search results</summary>
+      <description>Maximum number of results displayed in the Tide launcher list (3 to 15)</description>
+    </key>
+    <key name="search-open-windows" type="b">
+      <default>true</default>
+      <summary>Include open windows in launcher search</summary>
+      <description>Search and switch to open windows across workspaces alongside installed applications</description>
+    </key>
+    <key name="sort-by-usage" type="b">
+      <default>true</default>
+      <summary>Sort applications by recent usage</summary>
+      <description>Order installed applications by Shell.AppUsage frequency when true, or alphabetically when false</description>
+    </key>
+    <key name="show-descriptions" type="b">
+      <default>true</default>
+      <summary>Show application descriptions and window workspace subtitles</summary>
+      <description>Display description or workspace subtitle beneath each launcher result title</description>
+    </key>
+    <key name="show-shortcut-badges" type="b">
+      <default>true</default>
+      <summary>Show Ctrl+1..Ctrl+9 quick-launch shortcut badges</summary>
+      <description>Display Ctrl+1 through Ctrl+9 keyboard shortcut badges on the right side of the first nine results</description>
+    </key>
+    <key name="clear-search-on-open" type="b">
+      <default>true</default>
+      <summary>Clear search query when opening launcher</summary>
+      <description>Reset the search entry text whenever the Tide launcher modal opens</description>
+    </key>
+    <key name="close-on-outside-click" type="b">
+      <default>true</default>
+      <summary>Close launcher when clicking outside dialog</summary>
+      <description>Dismiss the Tide modal dialog when clicking anywhere outside its bounds</description>
+    </key>
+    <key name="dialog-width" type="i">
+      <range min="480" max="960"/>
+      <default>680</default>
+      <summary>Launcher dialog width in pixels</summary>
+      <description>Horizontal width of the Tide launcher modal dialog (480 to 960 px)</description>
+    </key>
+    <key name="result-icon-size" type="i">
+      <range min="24" max="64"/>
+      <default>32</default>
+      <summary>Result icon size in pixels</summary>
+      <description>Application icon texture size inside each launcher result row (24 to 64 px)</description>
+    </key>
+    <key name="show-dialog-border" type="b">
+      <default>true</default>
+      <summary>Show accent border around Tide launcher modal</summary>
+      <description>Draw a high-contrast accent border ring around the Tide launcher dialog and focused search entry</description>
+    </key>
+    <key name="border-width" type="i">
+      <range min="0" max="8"/>
+      <default>2</default>
+      <summary>Launcher dialog border width in pixels</summary>
+      <description>Thickness of the Tide launcher accent border ring (0 to 8 px)</description>
+    </key>
+    <key name="border-radius" type="i">
+      <range min="0" max="36"/>
+      <default>18</default>
+      <summary>Launcher dialog corner radius in pixels</summary>
+      <description>Corner rounding of the Tide launcher modal dialog (0 to 36 px)</description>
+    </key>
+    <key name="border-color-rgba" type="s">
+      <default>'rgb(106,215,225)'</default>
+      <summary>Launcher dialog accent border color</summary>
+      <description>CSS color string for the Tide launcher accent border ring and focused search entry</description>
+    </key>
+    <key name="background-opacity" type="i">
+      <range min="60" max="100"/>
+      <default>96</default>
+      <summary>Launcher dialog background opacity percentage</summary>
+      <description>Background opacity of the Tide launcher modal surface (60 to 100 percent)</description>
+    </key>
+  </schema>
+</schemalist>

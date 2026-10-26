@@ -1,0 +1,255 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Zero-dependency GJS architectural lint, Page Rule, EGO boundary, GTK4/Adw, and behavioral test suite.
+
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import {
+    MAX_INDEXED_APPS, MAX_OPEN_WINDOWS, collect_installed_apps, collect_open_windows,
+    format_shortcut_badge, is_pointer_stationary, normalize_query, rank_launcher_results, score_candidate_match,
+} from '../extension/launcher/search_engine.js';
+import {
+    build_dialog_surface_css, build_entry_focus_css,
+    build_selected_row_css, compute_scroll_height,
+} from '../extension/ui/launcher_style.js';
+import { format_rgba, is_dark_rgba, parse_rgba, text_color_for_css } from '../extension/ui/settings/color.js';
+import { ExtensionSettings, OVERLAY_KEY_ACTIONS } from '../extension/ui/settings/gsettings.js';
+import { BORDER_PRESETS, build_about_page, build_launcher_styling_page } from '../extension/ui/settings/prefs_pages.js';
+
+const BANNED_STEMS = new Set(['util', 'utils', 'lib', 'helper', 'helpers', 'common', 'misc', 'shared', 'base', 'core', 'types', 'mod']);
+const DECODER = new TextDecoder('utf-8');
+const REPO_ROOT = Gio.File.new_for_uri(import.meta.url).get_parent().get_parent().get_path();
+const EXT_ROOT = GLib.build_filenamev([REPO_ROOT, 'extension']);
+
+function assert(cond, msg) {
+    if (!cond) throw new Error(`Verification failed: ${msg}`);
+}
+
+function read_text(path) {
+    const [ok, bytes] = GLib.file_get_contents(path);
+    assert(ok, `failed to read ${path}`);
+    return DECODER.decode(bytes);
+}
+
+function walk_repo(dir_path, js_files, dirs) {
+    dirs.push(dir_path);
+    const enumerator = Gio.File.new_for_path(dir_path).enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
+    for (let info; (info = enumerator.next_file(null)) !== null;) {
+        const name = info.get_name();
+        if (name.startsWith('.') || name === 'dist' || name === 'target') continue;
+        const full = GLib.build_filenamev([dir_path, name]);
+        if (info.get_file_type() === Gio.FileType.DIRECTORY) walk_repo(full, js_files, dirs);
+        else if (name.endsWith('.js')) js_files.push(full);
+    }
+    enumerator.close(null);
+}
+
+function strip_strings_and_line_comment(raw) {
+    let out = '', quote = '';
+    for (let i = 0; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (quote) {
+            if (ch === '\\') i += 1;
+            else if (ch === quote) quote = '';
+        } else if (ch === '\'' || ch === '"' || ch === '`') {
+            quote = ch; out += '""';
+        } else if (ch === '/' && raw[i + 1] === '/') break;
+        else out += ch;
+    }
+    return out;
+}
+
+function verify_page_rules_and_lint(js_files, dirs) {
+    assert(js_files.length === 11, `expected 11 .js files, found ${js_files.length}`);
+    const legacy = ['imports.gi', 'imports.ui', 'imports.misc', 'ExtensionUtils', 'Meta.LaterType', 'Clutter.Container', 'add_actor', 'remove_actor', 'new String('];
+    for (const file of js_files) {
+        const content = read_text(file);
+        const lines = content.endsWith('\n') ? content.slice(0, -1).split('\n') : content.split('\n');
+        assert(lines.length >= 16 && lines.length <= 256, `Page Rule violation: ${file} has ${lines.length} lines (16..=256)`);
+        assert(lines[0] === '// SPDX-License-Identifier: GPL-3.0-or-later', `Missing SPDX header in ${file}`);
+        assert(lines[1].startsWith('// ') && lines[1].length >= 12, `Missing concise module description on line 2 of ${file}`);
+        if (file.startsWith(EXT_ROOT)) {
+            for (const sym of legacy) assert(!content.includes(sym), `Forbidden legacy symbol '${sym}' in ${file}`);
+        }
+        for (let idx = 0; idx < lines.length; idx += 1) {
+            const raw = lines[idx], ln = idx + 1, code = strip_strings_and_line_comment(raw);
+            assert(raw.length <= 200, `Line ${ln} of ${file} exceeds 200 chars (${raw.length})`);
+            if (!file.startsWith(EXT_ROOT)) continue;
+            assert(!code.trimStart().startsWith('var ') && !code.includes(' var ') && !code.includes('(var '), `Forbidden var in ${file}:${ln}`);
+            for (let i = 0; i < code.length - 1; i += 1) {
+                const prev = i > 0 ? code[i - 1] : '';
+                const prev_eq = prev === '=' || prev === '!' || prev === '<' || prev === '>';
+                const next_eq = i + 2 < code.length && code[i + 2] === '=';
+                assert(!(code[i] === '=' && code[i + 1] === '=' && !prev_eq && !next_eq), `Loose == in ${file}:${ln}`);
+                assert(!(code[i] === '!' && code[i + 1] === '=' && !next_eq), `Loose != in ${file}:${ln}`);
+            }
+        }
+    }
+    for (const dir_path of dirs) {
+        const enumerator = Gio.File.new_for_path(dir_path).enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+        const visible = [];
+        for (let info; (info = enumerator.next_file(null)) !== null;) {
+            const name = info.get_name();
+            if (!name.startsWith('.') && name !== 'dist' && name !== 'target') visible.push(name);
+        }
+        enumerator.close(null);
+        assert(visible.length <= 8, `Directory density violation: ${dir_path} has ${visible.length} visible entries (max 8)`);
+        for (const name of visible) {
+            const stem = (name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name).toLowerCase();
+            assert(!BANNED_STEMS.has(stem), `Banned generic name '${name}' in ${dir_path}`);
+        }
+    }
+}
+
+function verify_process_boundaries_and_invariants() {
+    const shared = [
+        'prefs.js', 'launcher/search_engine.js', 'ui/launcher_style.js',
+        'ui/settings/gsettings.js', 'ui/settings/color.js', 'ui/settings/prefs_pages.js',
+    ];
+    const compositor_only = ['gi://Meta', 'gi://Clutter', 'gi://St', 'gi://Shell', 'resource:///org/gnome/shell/'];
+    for (const rel of shared) {
+        for (const raw of read_text(GLib.build_filenamev([EXT_ROOT, rel])).split('\n')) {
+            const code = raw.split('//')[0];
+            for (const sym of compositor_only) assert(!code.includes(sym), `Process-boundary violation: ${rel} imports '${sym}'`);
+        }
+    }
+    const check_files = [
+        'extension.js', 'prefs.js', 'ui/settings/prefs_pages.js', 'launcher/launcher_manager.js',
+        'launcher/launcher_dialog.js', 'launcher/search_engine.js', 'launcher/result_row.js',
+        'metadata.json', 'schemas/org.gnome.shell.extensions.tide.gschema.xml',
+    ];
+    const combined = check_files.map((rel) => read_text(GLib.build_filenamev([EXT_ROOT, rel]))).join('\n');
+    const reqs = [
+        'export default class TideExtension extends Extension', 'this.manager.destroy()',
+        'fillPreferencesWindow(window)', 'Adw.PreferencesPage', 'close-request',
+        'Star Tide on GitHub', 'Tuition, Not Coffee — Help send my daughter to college',
+        'https://ubermetroid.github.io/tuition-not-coffee',
+        'Derived from Pop Launcher Super-Key Standalone by icesx',
+        '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler',
+        'allowKeybinding', 'stickykeys-enable', '"45"', '"50"',
+        '"settings-schema": "org.gnome.shell.extensions.tide"',
+        'name="overlay-key-action"', 'name="search-open-windows"', '1.0.1',
+        'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
+    ];
+    for (const req of reqs) assert(combined.includes(req), `Missing invariant: ${req}`);
+    assert(!combined.includes('Rust installer') && !combined.includes('cargo install'), 'No Rust CLI reference');
+    const prefs_pages = read_text(GLib.build_filenamev([EXT_ROOT, 'ui/settings/prefs_pages.js']));
+    assert(!/new Gtk\.Label\(\{[^}]*&amp;/s.test(prefs_pages), 'Gtk.Label must not contain raw &amp; without use_markup');
+}
+
+async function verify_behavioral_and_gtk_suite() {
+    const tmp_dir = GLib.dir_make_tmp('tide-verify-XXXXXX');
+    const schema_xml = 'org.gnome.shell.extensions.tide.gschema.xml';
+    const dst_xml = Gio.File.new_for_path(GLib.build_filenamev([tmp_dir, schema_xml]));
+    Gio.File.new_for_path(GLib.build_filenamev([EXT_ROOT, 'schemas', schema_xml])).copy(dst_xml, Gio.FileCopyFlags.OVERWRITE, null, null);
+    assert(Gio.Subprocess.new(['glib-compile-schemas', tmp_dir], Gio.SubprocessFlags.NONE).wait_check(null), 'schema');
+    const src = Gio.SettingsSchemaSource.new_from_directory(tmp_dir, Gio.SettingsSchemaSource.get_default(), false);
+    const ext_settings = new Gio.Settings({
+        settings_schema: src.lookup('org.gnome.shell.extensions.tide', true),
+        backend: Gio.memory_settings_backend_new(),
+    });
+    const s = new ExtensionSettings(ext_settings);
+
+    assert(s.overlay_key_action() === 'launcher' && s.max_results() === 9 && s.search_open_windows(), 'defs');
+    assert(s.sort_by_usage() && s.show_descriptions() && s.show_shortcut_badges(), 'row defs');
+    assert(s.clear_search_on_open() && s.close_on_outside_click() && s.dialog_width() === 680, 'dialog defs');
+    assert(s.result_icon_size() === 32 && s.show_dialog_border() && s.border_width() === 2, 'border defs');
+    assert(s.border_radius() === 18 && s.background_opacity() === 96, 'surface defs');
+    assert(OVERLAY_KEY_ACTIONS.length === 3 && BORDER_PRESETS.length === 4, 'enums');
+    assert(MAX_INDEXED_APPS === 512 && MAX_OPEN_WINDOWS === 128, 'bounds');
+
+    s.set_overlay_key_action('overview'); assert(s.overlay_key_action() === 'overview', 'action overview');
+    s.set_overlay_key_action('invalid'); assert(s.overlay_key_action() === 'launcher', 'action fallback');
+    s.set_max_results(99); assert(s.max_results() === 15, 'clamp max results');
+    s.set_max_results(1); assert(s.max_results() === 3, 'clamp min results');
+    s.set_dialog_width(2000); assert(s.dialog_width() === 960, 'clamp dialog width');
+    s.set_result_icon_size(10); assert(s.result_icon_size() === 24, 'clamp icon size');
+    s.set_border_width(20); s.set_border_radius(80); s.set_border_color_rgba('#2ec27e');
+    assert(s.border_width() === 8 && s.border_radius() === 36 && s.border_color_rgba() === 'rgba(46, 194, 126, 1)', 'border');
+    assert(is_dark_rgba(parse_rgba('#111111')) && text_color_for_css('#ffffff') === '#000000', 'luminance');
+    assert(format_rgba(parse_rgba('#zzzzzz')) === 'rgba(106, 215, 225, 1)', 'invalid hex falls back to Ocean Cyan');
+
+    const surf_css = build_dialog_surface_css(true, 2, 18, 'rgb(106,215,225)', 96);
+    assert(surf_css.includes('border: 2px solid rgba(106, 215, 225, 1);') && surf_css.includes('border-radius: 18px;'), 'surface css');
+    assert(build_dialog_surface_css(false, 2, 18, 'rgb(106,215,225)', 96).includes('rgba(255, 255, 255, 0.12)'), 'no border css');
+    assert(build_entry_focus_css(true, 'rgb(106,215,225)') === 'border: 1px solid rgba(106, 215, 225, 1);', 'entry css');
+    assert(build_selected_row_css('rgb(106,215,225)').includes('rgba(106, 215, 225, 0.20)'), 'selected row css');
+    assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 280 && compute_scroll_height(20) === 420, 'scroll height');
+
+    s.reset_defaults();
+    assert(s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
+
+    assert(normalize_query('  FireFox  ') === 'firefox' && normalize_query(null) === '', 'normalize_query');
+    assert(format_shortcut_badge(0, true) === 'Ctrl+1' && format_shortcut_badge(9, true) === '' && format_shortcut_badge(0, false) === '', 'badge');
+    assert(is_pointer_stationary([10, 20], 10, 20) && !is_pointer_stationary([10, 20], 11, 20) && !is_pointer_stationary(null, 0, 0), 'hover guard');
+    const c_ff = { id: 'org.mozilla.firefox.desktop', name: 'Firefox', description: 'Web Browser', keywords: 'internet web' };
+    const c_files = { id: 'org.gnome.Nautilus.desktop', name: 'Files', description: 'Access and organize files', keywords: 'folder manager' };
+    assert(score_candidate_match(c_ff, 'firefox') === 1000, 'exact match score');
+    assert(score_candidate_match(c_ff, 'fire') > score_candidate_match(c_ff, 'browser'), 'prefix beats description');
+    assert(score_candidate_match(c_files, 'ffx') === 0 && score_candidate_match(c_ff, 'ffx') > 0, 'subsequence fuzzy');
+
+    const mock_sys = {
+        get_installed: () => [
+            { get_id: () => 'b.desktop', should_show: () => true, get_keywords: () => ['beta'] },
+            { get_id: () => 'a.desktop', should_show: () => true, get_keywords: () => ['alpha'] },
+            { get_id: () => 'hidden.desktop', should_show: () => false },
+        ],
+        lookup_app: (id) => ({
+            get_id: () => id, get_name: () => (id === 'a.desktop' ? 'Alpha' : 'Beta'), get_description: () => `Desc ${id}`,
+        }),
+    };
+    const apps_alpha = collect_installed_apps(mock_sys, null, false);
+    assert(apps_alpha.length === 2 && apps_alpha[0].name === 'Alpha', 'collect_installed_apps alphabetical');
+
+    const mock_wm = {
+        get_n_workspaces: () => 2,
+        get_workspace_by_index: (idx) => ({
+            list_windows: () => (idx === 0 ? [{ is_skip_taskbar: () => false, get_title: () => 'Tide Repo — Editor', get_wm_class: () => 'Code' }] : []),
+        }),
+    };
+    const open_wins = collect_open_windows(mock_wm, null);
+    assert(open_wins.length === 1 && open_wins[0].kind === 'window' && open_wins[0].description.includes('Workspace 1'), 'collect_open_windows');
+
+    const ranked_empty = rank_launcher_results(apps_alpha, open_wins, '', 9);
+    assert(ranked_empty.length === 2 && ranked_empty[0].kind === 'app', 'empty query returns top apps');
+    const ranked_q = rank_launcher_results(apps_alpha, open_wins, 'tide repo', 9);
+    assert(ranked_q.length === 1 && ranked_q[0].kind === 'window', 'query matches open window');
+
+    try {
+        const Gtk = (await import('gi://Gtk?version=4.0')).default, Adw = (await import('gi://Adw?version=1')).default;
+        if (Gtk.init_check()) {
+            Adw.init();
+            const signals = [], page_s = build_launcher_styling_page(ext_settings, s, signals), page_a = build_about_page();
+            assert(page_s.get_title() === 'Appearance & Styling' && page_a.get_title() === 'About & Support', 'GTK4 pages');
+            let root_to_walk = [page_s, page_a];
+            const gres = '/usr/share/gnome-shell/org.gnome.Shell.Extensions.src.gresource';
+            if (Gio.File.new_for_path(gres).query_exists(null)) {
+                Gio.resources_register(Gio.Resource.load(gres));
+                const { default: TidePreferences } = await import('../extension/prefs.js');
+                const prefs = Object.create(TidePreferences.prototype), win = new Adw.PreferencesWindow();
+                prefs.getSettings = () => ext_settings;
+                prefs.fillPreferencesWindow(win);
+                root_to_walk = [win];
+            }
+            const walk_labels = (w) => {
+                if (!w) return;
+                if (w instanceof Gtk.Label) {
+                    const txt = w.get_text() || '';
+                    assert(!txt.includes('&amp;'), `Unescaped &amp; in rendered Gtk.Label text: ${txt}`);
+                    if (w.get_visible()) assert(txt.trim().length > 0, 'Empty visible Gtk.Label');
+                }
+                for (let c = w.get_first_child?.(); c; c = c.get_next_sibling?.()) walk_labels(c);
+            };
+            for (const r of root_to_walk) walk_labels(r);
+            for (const [obj, sig] of signals) obj.disconnect(sig);
+        }
+    } catch (e) { if (String(e).includes('Verification failed')) throw e; }
+    const comp = Gio.File.new_for_path(GLib.build_filenamev([tmp_dir, 'gschemas.compiled']));
+    for (const f of [dst_xml, comp, Gio.File.new_for_path(tmp_dir)]) f.delete(null);
+}
+
+const js_files = [], dirs = [];
+walk_repo(REPO_ROOT, js_files, dirs);
+verify_page_rules_and_lint(js_files, dirs);
+verify_process_boundaries_and_invariants();
+await verify_behavioral_and_gtk_suite();
+print(`OK: verified ${js_files.length} JS pages across ${dirs.length} directories and all headless behavioral suites.`);

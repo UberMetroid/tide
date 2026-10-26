@@ -1,0 +1,141 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Super-key (overlay-key) interceptor, sticky-keys guard, stylesheet loader, and Tide lifecycle coordinator.
+
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
+import St from 'gi://St';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { ExtensionSettings } from '../ui/settings/gsettings.js';
+import { LauncherDialog } from './launcher_dialog.js';
+
+const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
+const STICKY_KEYS_KEY = 'stickykeys-enable';
+
+export class LauncherManager {
+    constructor(extension) {
+        this.extension = extension;
+        this.ext_settings = extension.getSettings();
+        this.settings = new ExtensionSettings(this.ext_settings);
+        this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+        this._current_style = null;
+        this._orig_overlay_key_id = 0;
+        this._overlay_key_id = 0;
+        this._style_timer_id = 0;
+        this._launcher = null;
+
+        try {
+            this.load_theme();
+            this._launcher = new LauncherDialog(extension, this.settings);
+            this._bind_overlay_key();
+            this._connect_settings();
+        } catch (err) {
+            this.destroy();
+            throw err;
+        }
+    }
+
+    load_theme() {
+        this.unload_theme();
+        try {
+            const file = Gio.File.new_for_path(`${this.extension.path}/ui/stylesheet.css`);
+            const theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
+            if (theme) {
+                theme.load_stylesheet(file);
+                this._current_style = file;
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    unload_theme() {
+        if (!this._current_style) return;
+        try {
+            const theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
+            if (theme) theme.unload_stylesheet(this._current_style);
+        } catch (_e) { /* ignore */ }
+        this._current_style = null;
+    }
+
+    _bind_overlay_key() {
+        const found_id = GObject.signal_handler_find(global.display, { signalId: 'overlay-key' });
+        if (found_id > 0) {
+            this._orig_overlay_key_id = found_id;
+            global.display.block_signal_handler(this._orig_overlay_key_id);
+        }
+        this._overlay_key_id = global.display.connect('overlay-key', () => {
+            if (this._a11y_settings?.get_boolean(STICKY_KEYS_KEY)) return;
+            this.toggle_action(this.settings.overlay_key_action());
+        });
+    }
+
+    _connect_settings() {
+        this.ext_settings.connectObject('changed', (_s, key) => {
+            if (key === 'overlay-key-action') {
+                if (this._launcher?.visible) this._launcher.hide();
+                if (Main.overview.visibleTarget) Main.overview.hide();
+                return;
+            }
+            if (key === 'sort-by-usage') {
+                this._launcher?.reload_apps();
+                return;
+            }
+            this._schedule_style_refresh();
+        }, this);
+    }
+
+    _schedule_style_refresh() {
+        if (this._style_timer_id !== 0) {
+            GLib.Source.remove(this._style_timer_id);
+            this._style_timer_id = 0;
+        }
+        this._style_timer_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60, () => {
+            this._style_timer_id = 0;
+            this._launcher?.sync_style();
+            return GLib.SOURCE_REMOVE;
+        });
+        GLib.Source.set_name_by_id(this._style_timer_id, '[tide] style-refresh');
+    }
+
+    toggle_action(action) {
+        if (Main.overview.animationInProgress) return;
+        if (action === 'launcher') {
+            if (this._launcher?.visible) this._launcher.hide();
+            else this._launcher?.show();
+            return;
+        }
+        if (this._launcher?.visible) this._launcher.hide();
+        if (action === 'app-grid') {
+            if (Main.overview.visibleTarget) Main.overview.hide();
+            else if (typeof Main.overview.showApps === 'function') Main.overview.showApps();
+            else Main.overview.show();
+            return;
+        }
+        if (Main.overview.visibleTarget) Main.overview.hide();
+        else Main.overview.show();
+    }
+
+    destroy() {
+        if (this._style_timer_id !== 0) {
+            GLib.Source.remove(this._style_timer_id);
+            this._style_timer_id = 0;
+        }
+        if (this._overlay_key_id > 0) {
+            global.display.disconnect(this._overlay_key_id);
+            this._overlay_key_id = 0;
+        }
+        if (this._orig_overlay_key_id > 0) {
+            global.display.unblock_signal_handler(this._orig_overlay_key_id);
+            this._orig_overlay_key_id = 0;
+        }
+        this.ext_settings?.disconnectObject(this);
+        this._launcher?.destroy();
+        this._launcher = null;
+        this.unload_theme();
+        this._a11y_settings = null;
+        this.settings = null;
+        this.ext_settings = null;
+        this.extension = null;
+    }
+}
