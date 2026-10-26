@@ -4,9 +4,7 @@
 import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-import { format_shortcut_badge, is_pointer_stationary } from './search_engine.js';
-
-export { format_shortcut_badge, is_pointer_stationary };
+import { format_shortcut_badge } from './search_engine.js';
 
 export function create_result_row(item, index, settings, on_activate, on_hover_select) {
     const icon_size = settings.result_icon_size();

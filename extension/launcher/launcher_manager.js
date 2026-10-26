@@ -19,24 +19,25 @@ const STYLE_KEYS = new Set([
 export class LauncherManager {
     constructor(extension) {
         this.extension = extension;
-        this.ext_settings = extension.getSettings();
-        this.settings = new ExtensionSettings(this.ext_settings);
+        this.ext_settings = null;
+        this.settings = null;
         this._a11y_settings = null;
-        try {
-            const src = Gio.SettingsSchemaSource.get_default();
-            if (src?.lookup(A11Y_SCHEMA, true)) {
-                this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
-            }
-        } catch (_e) {
-            this._a11y_settings = null;
-        }
         this._current_style = null;
         this._orig_overlay_key_id = 0;
         this._overlay_key_id = 0;
+        this._settings_id = 0;
         this._style_timer_id = 0;
         this._launcher = null;
+        this._destroyed = false;
 
         try {
+            this.ext_settings = extension.getSettings();
+            this.settings = new ExtensionSettings(this.ext_settings);
+            try {
+                if (Gio.SettingsSchemaSource.get_default()?.lookup(A11Y_SCHEMA, true)) {
+                    this._a11y_settings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+                }
+            } catch (_e) { this._a11y_settings = null; }
             this.load_theme();
             this._launcher = new LauncherDialog(extension, this.settings);
             this._bind_overlay_key();
@@ -75,6 +76,8 @@ export class LauncherManager {
         if (found_id > 0) {
             this._orig_overlay_key_id = found_id;
             global.display.block_signal_handler(this._orig_overlay_key_id);
+        } else {
+            console.warn('[tide] default overlay-key signal handler not found on global.display');
         }
         this._overlay_key_id = global.display.connect('overlay-key', () => {
             if (this._a11y_settings?.get_boolean(STICKY_KEYS_KEY)) return;
@@ -83,7 +86,7 @@ export class LauncherManager {
     }
 
     _connect_settings() {
-        this.ext_settings.connectObject('changed', (_s, key) => {
+        this._settings_id = this.ext_settings.connect('changed', (_s, key) => {
             if (key === 'overlay-key-action') {
                 if (this._launcher?.visible) this._launcher.hide();
                 return;
@@ -97,7 +100,7 @@ export class LauncherManager {
                 return;
             }
             if (this._launcher?.visible) this._launcher.refresh_results();
-        }, this);
+        });
     }
 
     _schedule_style_refresh() {
@@ -132,6 +135,8 @@ export class LauncherManager {
     }
 
     destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
         if (this._style_timer_id !== 0) {
             GLib.Source.remove(this._style_timer_id);
             this._style_timer_id = 0;
@@ -148,7 +153,10 @@ export class LauncherManager {
             }
             this._orig_overlay_key_id = 0;
         }
-        this.ext_settings?.disconnectObject(this);
+        if (this._settings_id > 0) {
+            this.ext_settings?.disconnect(this._settings_id);
+            this._settings_id = 0;
+        }
         this._launcher?.destroy();
         this._launcher = null;
         this.unload_theme();

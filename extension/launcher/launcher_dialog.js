@@ -8,11 +8,12 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { ModalDialog } from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import { ensureActorVisibleInScrollView } from 'resource:///org/gnome/shell/misc/animationUtils.js';
 import {
-    build_dialog_surface_css, build_entry_focus_css,
-    build_selected_row_css, compute_scroll_height,
+    build_dialog_surface_css, build_entry_focus_css, build_selected_row_css, compute_scroll_height,
 } from '../ui/launcher_style.js';
-import { create_result_row, is_pointer_stationary } from './result_row.js';
-import { collect_installed_apps, collect_open_windows, rank_launcher_results } from './search_engine.js';
+import { create_result_row } from './result_row.js';
+import {
+    collect_installed_apps, collect_open_windows, is_pointer_stationary, normalize_query, rank_launcher_results,
+} from './search_engine.js';
 
 export class LauncherDialog {
     constructor(extension, settings) {
@@ -41,6 +42,7 @@ export class LauncherDialog {
         this._prefs_btn = new St.Button({
             style_class: 'tide-launcher-prefs-button',
             can_focus: false,
+            accessible_name: 'Tide Preferences',
             child: new St.Icon({ icon_name: 'preferences-system-symbolic', icon_size: 18 }),
         });
         this._prefs_btn.connect('clicked', () => {
@@ -66,9 +68,7 @@ export class LauncherDialog {
         this.reload_apps();
     }
 
-    get visible() {
-        return Boolean(this._dialog?.visible);
-    }
+    get visible() { return Boolean(this._dialog?.visible); }
 
     _bind_signals() {
         const ct = this._entry.clutter_text;
@@ -84,17 +84,23 @@ export class LauncherDialog {
         this._inst_id = this._app_system.connect('installed-changed', () => this.reload_apps());
     }
 
+    _get_surface_actor() {
+        const layout = this._dialog?.dialogLayout;
+        return layout?._dialog || layout?.get_first_child?.() || layout || null;
+    }
+
     sync_style() {
         if (!this._dialog || !this.settings) return;
-        this._dialog.contentLayout.width = Math.max(416, this.settings.dialog_width() - 32);
+        this._dialog.contentLayout.width = Math.max(448, this.settings.dialog_width() - 32);
         this._dialog.contentLayout.spacing = 12;
-        const layout = this._dialog.dialogLayout;
-        const surface = layout?._dialog || layout?.get_first_child?.() || layout || this._dialog;
-        surface.set_style(build_dialog_surface_css(
-            this.settings.show_dialog_border(), this.settings.border_width(),
-            this.settings.border_radius(), this.settings.border_color_rgba(),
-            this.settings.background_opacity(),
-        ));
+        const surface = this._get_surface_actor();
+        if (surface) {
+            surface.set_style(build_dialog_surface_css(
+                this.settings.show_dialog_border(), this.settings.border_width(),
+                this.settings.border_radius(), this.settings.border_color_rgba(),
+                this.settings.background_opacity(),
+            ));
+        }
         this._entry.set_style(build_entry_focus_css(
             this.settings.show_dialog_border(), this.settings.border_color_rgba(),
         ));
@@ -114,16 +120,11 @@ export class LauncherDialog {
         this.sync_style();
         if (this.settings.clear_search_on_open()) this._entry.set_text('');
         this.refresh_results();
-        if (this._dialog.open()) {
-            this._entry.grab_key_focus();
-        } else {
-            this._restore_overlay_key_mode();
-        }
+        if (this._dialog.open()) this._entry.grab_key_focus();
+        else this._restore_overlay_key_mode();
     }
 
-    hide() {
-        if (this._dialog?.visible) this._dialog.close();
-    }
+    hide() { if (this._dialog?.visible) this._dialog.close(); }
 
     refresh_results() {
         if (!this._list || !this.settings) return;
@@ -133,15 +134,14 @@ export class LauncherDialog {
         this._buttons = [];
 
         const query = this._entry.get_text();
-        const open_wins = this.settings.search_open_windows()
+        const has_query = normalize_query(query).length > 0;
+        const open_wins = has_query && this.settings.search_open_windows()
             ? collect_open_windows(global.workspace_manager, this._window_tracker)
             : [];
 
-        this._results = rank_launcher_results(
-            this._apps, open_wins, query, this.settings.max_results(), null,
-        );
+        this._results = rank_launcher_results(this._apps, open_wins, query, this.settings.max_results());
         this._selected_index = -1;
-        this._scroll.height = compute_scroll_height(this._results.length);
+        this._scroll.height = compute_scroll_height(this._results.length, this.settings.show_descriptions());
 
         if (this._results.length === 0) {
             this._list.add_child(new St.Label({
@@ -207,9 +207,12 @@ export class LauncherDialog {
 
     _on_button_press(event) {
         if (!this.settings?.close_on_outside_click()) return Clutter.EVENT_PROPAGATE;
-        const [x, y] = event.get_coords(), layout = this._dialog.dialogLayout;
-        const [dx, dy] = layout.get_transformed_position();
-        if (x < dx || x > dx + layout.width || y < dy || y > dy + layout.height) {
+        const surface = this._get_surface_actor();
+        if (!surface) return Clutter.EVENT_PROPAGATE;
+        const [x, y] = event.get_coords();
+        const [dx, dy] = surface.get_transformed_position();
+        const [dw, dh] = surface.get_transformed_size?.() || [surface.width, surface.height];
+        if (x < dx || x > dx + dw || y < dy || y > dy + dh) {
             this.hide();
             return Clutter.EVENT_STOP;
         }
@@ -221,18 +224,12 @@ export class LauncherDialog {
         const item = this._results[index];
         this.hide();
         try {
-            if (item.kind === 'window' && item.window) {
-                Main.activateWindow(item.window);
-            } else if (item.app) {
-                item.app.activate();
-            }
+            if (item.kind === 'window' && item.window) Main.activateWindow(item.window);
+            else if (item.app) item.app.activate();
         } catch (_e) { /* ignore activation failure */ }
     }
 
-    _on_closed() {
-        this._selected_index = -1;
-        this._restore_overlay_key_mode();
-    }
+    _on_closed() { this._selected_index = -1; this._restore_overlay_key_mode(); }
 
     _restore_overlay_key_mode() {
         Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
@@ -247,7 +244,9 @@ export class LauncherDialog {
         for (const id of [this._dkey_id, this._dbtn_id, this._dcls_id]) { if (id) this._dialog?.disconnect(id); }
         this._text_id = this._act_id = this._ekey_id = this._dkey_id = this._dbtn_id = this._dcls_id = 0;
         this._dialog?.destroy();
-        this._dialog = this._header = this._entry = this._list = this._scroll = null;
+        this._dialog = this._header = this._entry = this._prefs_btn = this._list = this._scroll = null;
+        this._app_system = this._app_usage = this._window_tracker = this.settings = this.extension = null;
+        this._hover_guard_pos = null;
         this._apps = this._results = this._buttons = [];
     }
 }

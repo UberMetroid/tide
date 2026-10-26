@@ -180,12 +180,13 @@ async function verify_behavioral_and_gtk_suite() {
         assert(score_candidate_match(c_ff, 'fire') > score_candidate_match(c_ff, 'browser'), 'prefix beats description');
         assert(score_candidate_match(c_files, 'nautilus') > score_candidate_match(c_files, 'organize'), 'desktop id beats description');
         assert(score_candidate_match(c_files, 'ffx') === 0 && score_candidate_match(c_ff, 'ffx') > 0, 'subsequence fuzzy');
+        assert(score_candidate_match(c_ff, 'ffx') > score_candidate_match({ id: 'b', name: 'zzzzFirefox' }, 'ffx'), 'leading gap penalty');
 
         const mock_sys = {
             get_installed: () => [
+                { get_id: () => 'hidden.desktop', should_show: () => false },
                 { get_id: () => 'b.desktop', should_show: () => true, get_keywords: () => ['beta'] },
                 { get_id: () => 'a.desktop', should_show: () => true, get_keywords: () => ['alpha'] },
-                { get_id: () => 'hidden.desktop', should_show: () => false },
             ],
             lookup_app: (id) => ({ get_id: () => id, get_name: () => (id === 'a.desktop' ? 'Alpha' : 'Beta'), get_description: () => `Desc ${id}` }),
         };
@@ -200,12 +201,11 @@ async function verify_behavioral_and_gtk_suite() {
             ] : []) }),
         };
         const open_wins = collect_open_windows(mock_wm, null);
-        assert(open_wins.length === 2 && open_wins[0].id !== open_wins[1].id && open_wins[0].description.includes('Workspace 1'), 'collect_open_windows unique ids');
+        assert(open_wins.length === 2 && open_wins[0].id === 'window:0:10' && open_wins[1].id === 'window:0:11', 'collect_open_windows unique ids');
+        assert(compute_scroll_height(5, true) === 280 && compute_scroll_height(5, false) === 210, 'scroll height descriptions toggle');
 
-        const ranked_empty = rank_launcher_results(apps_alpha, open_wins, '', 9);
-        assert(ranked_empty.length === 2 && ranked_empty[0].kind === 'app', 'empty query returns top apps');
-        const ranked_q = rank_launcher_results(apps_alpha, open_wins, 'tide repo', 9);
-        assert(ranked_q.length === 2 && ranked_q[0].kind === 'window', 'query matches open windows');
+        const ranked_empty = rank_launcher_results(apps_alpha, open_wins, '', 9), ranked_q = rank_launcher_results(apps_alpha, open_wins, 'tide repo', 9);
+        assert(ranked_empty.length === 2 && ranked_empty[0].kind === 'app' && ranked_q.length === 2 && ranked_q[0].kind === 'window', 'rank_launcher_results');
 
         let Gtk = null, Adw = null;
         try { Gtk = (await import('gi://Gtk?version=4.0')).default; Adw = (await import('gi://Adw?version=1')).default; } catch (_e) { /* no Gtk4 typelib */ }
@@ -222,7 +222,8 @@ async function verify_behavioral_and_gtk_suite() {
                     if (Gio.File.new_for_path(d).query_exists(null)) repo.prepend_search_path?.(d);
                 }
                 Gio.resources_register(Gio.Resource.load(gres));
-                const { default: TidePreferences } = await import('../extension/prefs.js');
+                const { default: TidePreferences, build_launcher_and_search_page } = await import('../extension/prefs.js');
+                assert(build_launcher_and_search_page(ext_settings, s, signals).get_title() === 'Launcher & Search', 'Launcher & Search page title');
                 const prefs = Object.create(TidePreferences.prototype), win = new Adw.PreferencesWindow();
                 prefs.getSettings = () => ext_settings;
                 prefs.fillPreferencesWindow(win);

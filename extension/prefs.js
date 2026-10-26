@@ -10,7 +10,7 @@ import {
     make_combo_row, make_spin_row, make_switch_row,
 } from './ui/settings/prefs_pages.js';
 
-function build_launcher_and_search_page(ext_settings, settings, signals) {
+export function build_launcher_and_search_page(ext_settings, settings, signals) {
     const page = new Adw.PreferencesPage({
         title: 'Launcher & Search',
         icon_name: 'system-search-symbolic',

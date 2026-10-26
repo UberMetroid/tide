@@ -41,5 +41,6 @@ export function build_selected_row_css(border_color_rgba) {
 export function compute_scroll_height(result_count, row_height = 56, max_height = 420) {
     const count = Math.max(0, Math.round(Number(result_count) || 0));
     if (count === 0) return 64;
-    return Math.min(max_height, count * row_height);
+    const h = typeof row_height === 'boolean' ? (row_height ? 56 : 42) : (Number(row_height) || 56);
+    return Math.min(max_height, count * h);
 }

@@ -12,7 +12,8 @@ export default class TideExtension extends Extension {
 
     enable() {
         if (this.manager !== null) return;
-        this.manager = new LauncherManager(this);
+        const mgr = new LauncherManager(this);
+        this.manager = mgr._destroyed ? null : mgr;
     }
 
     disable() {

@@ -15,7 +15,8 @@ export function score_candidate_match(candidate, query) {
     if (!q) return 1;
     const name = normalize_query(candidate?.name);
     const desc = normalize_query(candidate?.description);
-    const id = normalize_query(candidate?.id);
+    const q_ascii = typeof query === 'string' ? query.trim().toLowerCase() : '';
+    const id = typeof candidate?.id === 'string' ? candidate.id.trim().toLowerCase() : '';
     const kw = normalize_query(candidate?.keywords);
 
     if (name === q) return 1000;
@@ -24,19 +25,24 @@ export function score_candidate_match(candidate, query) {
     if (word_idx >= 0) return 720 - Math.min(80, word_idx);
     const sub_idx = name.indexOf(q);
     if (sub_idx >= 0) return 600 - Math.min(80, sub_idx);
-    if (id.startsWith(q) || id.includes(`.${q}`)) return 480;
+    if (q_ascii && (id.startsWith(q_ascii) || id.includes(`.${q_ascii}`))) return 480;
     if (kw.includes(q)) return 420;
-    if (id.includes(q)) return 360;
+    if (q_ascii && id.includes(q_ascii)) return 360;
     if (desc.includes(q)) return 320;
 
     let qi = 0;
     let gaps = 0;
+    let lead = 0;
     for (let i = 0; i < name.length && qi < q.length; i += 1) {
-        if (name[i] === q[qi]) qi += 1;
-        else if (qi > 0) gaps += 1;
+        if (name[i] === q[qi]) {
+            if (qi === 0) lead = i;
+            qi += 1;
+        } else if (qi > 0) {
+            gaps += 1;
+        }
     }
-    if (qi === q.length && q.length >= 2 && gaps <= 6) {
-        return Math.max(80, 200 - gaps * 15);
+    if (qi === q.length && q.length >= 2 && gaps <= 6 && lead <= 12) {
+        return Math.max(80, 200 - gaps * 15 - Math.min(45, lead * 5));
     }
     return 0;
 }
@@ -103,7 +109,7 @@ export function collect_open_windows(workspace_manager, window_tracker) {
             const seq = win.get_stable_sequence?.() ?? out.length;
             out.push({
                 kind: 'window',
-                id: `window:${w_idx}:${seq}:${title}`,
+                id: `window:${w_idx}:${seq}`,
                 name: title,
                 description: `${app_name} — Workspace ${w_idx + 1}`,
                 keywords: `${app_name} workspace ${w_idx + 1}`,
@@ -115,7 +121,7 @@ export function collect_open_windows(workspace_manager, window_tracker) {
     return out;
 }
 
-export function rank_launcher_results(apps, open_windows, query, max_results = 9, shell_search_ids = null) {
+export function rank_launcher_results(apps, open_windows, query, max_results = 9) {
     const cap = Math.max(1, Math.min(15, Math.round(Number(max_results) || 9)));
     const q = normalize_query(query);
     const safe_apps = Array.isArray(apps) ? apps.slice(0, MAX_INDEXED_APPS) : [];
@@ -129,13 +135,6 @@ export function rank_launcher_results(apps, open_windows, query, max_results = 9
         return initial;
     }
 
-    const shell_bonus = new Map();
-    if (Array.isArray(shell_search_ids)) {
-        for (let i = 0; i < shell_search_ids.length && i < MAX_INDEXED_APPS; i += 1) {
-            shell_bonus.set(shell_search_ids[i], Math.max(40, 260 - i * 8));
-        }
-    }
-
     const scored = [];
     for (let i = 0; i < safe_wins.length; i += 1) {
         const w = safe_wins[i];
@@ -144,9 +143,7 @@ export function rank_launcher_results(apps, open_windows, query, max_results = 9
     }
     for (let i = 0; i < safe_apps.length; i += 1) {
         const a = safe_apps[i];
-        const base = score_candidate_match(a, q);
-        const bonus = shell_bonus.get(a.id) || 0;
-        const total = base + bonus;
+        const total = score_candidate_match(a, q);
         if (total > 0) scored.push({ item: a, score: total, order: safe_wins.length + i });
     }
 
