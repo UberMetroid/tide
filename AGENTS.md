@@ -46,7 +46,7 @@ Tide (`tide@ubermetroid.github.io`) is built on four uncompromising engineering 
   - [`extension/prefs.js`](extension/prefs.js): `TidePreferences extends ExtensionPreferences` 3-tab GTK4 / Libadwaita preferences UI.
 - **Super-Key Launcher & Fuzzy Search Engine (`extension/launcher/` — 4 pages)**:
   - [`launcher_manager.js`](extension/launcher/launcher_manager.js): `global.display` `overlay-key` & `Main.wm.addKeybinding('toggle-launcher')` (`Super+Enter`) interceptor, `stickykeys-enable` accessibility guard, stylesheet loader, and named `[tide] style-refresh` timer.
-  - [`launcher_dialog.js`](extension/launcher/launcher_dialog.js): `ModalDialog` launcher UI with search entry, quick preferences button, `Up`/`Down`/`Enter`/`Super+Enter`/`Esc`/`Ctrl+1..9` keyboard navigation, and outside-click dismissal.
+  - [`launcher_dialog.js`](extension/launcher/launcher_dialog.js): Top-anchored (`Clutter.ActorAlign.START`) `ModalDialog` launcher UI with search entry, quick preferences button, `Up`/`Down`/`Enter`/`Super+Enter`/`Esc`/`Ctrl+1..9` keyboard navigation, and outside-click dismissal.
   - [`search_engine.js`](extension/launcher/search_engine.js): Pure bounded application (`MAX_INDEXED_APPS = 512`) and open-window (`MAX_OPEN_WINDOWS = 128`) indexer, query normalizer, and fuzzy scorer (`score_candidate_match`, `rank_launcher_results`).
   - [`result_row.js`](extension/launcher/result_row.js): `St.Button` result row builder with application icon texture, ellipsized title/description, `Ctrl+1..9` shortcut badge, and stationary-pointer hover guard.
 - **UI, Modal Styling & Settings (`extension/ui/` — 4 JS pages + stylesheet)**:

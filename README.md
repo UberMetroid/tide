@@ -25,7 +25,7 @@ Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-
 | **Instant `Super` & `Super + Enter` Launcher** | **Active (`launcher` + `Super+Enter`)** | Press **Super** or **Super + Enter** (`<Super>Return` / `<Super>KP_Enter`) to open or close Tide immediately without opening the full GNOME Overview or requiring Pop Shell / external `pop-launcher` daemons. |
 | **Open-Window & App Fuzzy Search** | **Active** | Displays top installed applications (`Shell.AppSystem` + `Shell.AppUsage` frequency) on open, and fuzzy-matches both installed applications and open windows across all workspaces as you type. |
 | **`Ctrl+1` .. `Ctrl+9` Quick Launch** | **Built-in** | Launch or focus any of the first nine results immediately with `Ctrl+1` through `Ctrl+9`, or navigate with `Up` / `Down` and `Enter`. |
-| **Stationary-Pointer Hover Guard** | **Built-in** | Keeps initial keyboard selection locked on the top result when the modal opens beneath a stationary mouse cursor until you intentionally move the pointer. |
+| **Stationary-Pointer Hover Guard & Top-Anchored Bar** | **Built-in (`160px` top anchor)** | Locks the search input at a fixed vertical position so the result list shrinks upward as you type, and keeps keyboard selection locked on the top result beneath a stationary mouse cursor. |
 | **Ocean Cyan / Kelp / Reef Accent Border** | **Ocean Cyan (`2px`, `18px` radius)** | Features a customizable high-contrast accent border and selected-row highlight with 1-click presets (*Ocean Cyan*, *Kelp Emerald*, *Gruvbox Amber*, *Coral Red*). |
 
 ---
