@@ -119,7 +119,7 @@ function verify_process_boundaries_and_invariants() {
         '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler', 'allowKeybinding', 'stickykeys-enable',
         'addKeybinding', 'removeKeybinding', 'SYSTEM_MODAL', 'name="enable-super-enter"', 'name="toggle-launcher"',
         '"45"', '"50"', '"settings-schema": "org.gnome.shell.extensions.tide"', 'name="overlay-key-action"',
-        'name="search-open-windows"', '1.1.0', '"name": "Studio 2201: Tide (App Launcher)"', 'Sync Color Across Suite', 'sync_color_across_suite',
+        'name="search-open-windows"', '1.2.0', '"name": "Studio 2201: Tide (App Launcher)"', 'Sync Color Across Suite', 'sync_color_across_suite',
         'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
         'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected', 'Clutter.ActorAlign.START',
     ];
@@ -170,11 +170,11 @@ async function verify_behavioral_and_gtk_suite() {
         assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 300 && compute_scroll_height(20) === 420, 'scroll height');
         s.reset_defaults();
         assert(s.enable_super_enter() && s.toggle_launcher()[0] === '<Super>Return' && s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
-        const tide_sdir = GLib.build_filenamev([tmp_dir, 'tide@ubermetroid.github.io', 'schemas']);
+        const tide_sdir = GLib.build_filenamev([tmp_dir, 'tide@studio2201.github.io', 'schemas']);
         GLib.mkdir_with_parents(tide_sdir, 0o755);
         comp.copy(Gio.File.new_for_path(GLib.build_filenamev([tide_sdir, 'gschemas.compiled'])), Gio.FileCopyFlags.OVERWRITE, null, null);
         assert(SUITE_COLOR_TARGETS.length === 5 && sync_color_across_suite('#102030', tmp_dir, mem_backend) === 1 && s.border_color_rgba() === 'rgba(16, 32, 48, 1)', 'suite sync');
-        for (const p of [GLib.build_filenamev([tide_sdir, 'gschemas.compiled']), tide_sdir, GLib.build_filenamev([tmp_dir, 'tide@ubermetroid.github.io'])]) Gio.File.new_for_path(p).delete(null);
+        for (const p of [GLib.build_filenamev([tide_sdir, 'gschemas.compiled']), tide_sdir, GLib.build_filenamev([tmp_dir, 'tide@studio2201.github.io'])]) Gio.File.new_for_path(p).delete(null);
         s.reset_defaults();
         assert(normalize_query('  FireFox  ') === 'firefox' && normalize_query(null) === '', 'normalize_query');
         assert(format_shortcut_badge(0, true) === 'Ctrl+1' && format_shortcut_badge(9, true) === '' && format_shortcut_badge(0, false) === '', 'badge');

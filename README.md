@@ -4,17 +4,17 @@
 
 # Tide
 
-[![CI & EGO Bundle Verification](https://github.com/UberMetroid/tide/actions/workflows/ci.yml/badge.svg)](https://github.com/UberMetroid/tide/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/UberMetroid/tide)](https://github.com/UberMetroid/tide/releases/latest)
+[![CI & EGO Bundle Verification](https://github.com/studio2201/tide/actions/workflows/ci.yml/badge.svg)](https://github.com/studio2201/tide/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/studio2201/tide)](https://github.com/studio2201/tide/releases/latest)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Sponsor: Tuition, Not Coffee](https://img.shields.io/badge/Sponsor-Tuition%2C%20Not%20Coffee%20%F0%9F%8E%93-2ec27e)](https://ubermetroid.github.io/tuition-not-coffee)
-[![Star on GitHub](https://img.shields.io/github/stars/UberMetroid/tide?style=social)](https://github.com/UberMetroid/tide)
+[![Star on GitHub](https://img.shields.io/github/stars/studio2201/tide?style=social)](https://github.com/studio2201/tide)
 
-**Tide** (`tide@ubermetroid.github.io`) is a fast, zero-subprocess, Wayland-native **Super-Key Application & Open-Window Launcher** for **GNOME Shell 45–50**. Press **Super** or **Super + Enter** to summon a sleek modal search bar with instant fuzzy application and open-window matching across workspaces, **Ctrl+1..Ctrl+9** direct launch shortcuts, Kelp/Reef/Coral accent borders, and a **3-tab Libadwaita Settings & About dialog**.
+**Tide** (`tide@studio2201.github.io`) is a fast, zero-subprocess, Wayland-native **Super-Key Application & Open-Window Launcher** for **GNOME Shell 45–50**. Press **Super** or **Super + Enter** to summon a sleek modal search bar with instant fuzzy application and open-window matching across workspaces, **Ctrl+1..Ctrl+9** direct launch shortcuts, Kelp/Reef/Coral accent borders, and a **3-tab Libadwaita Settings & About dialog**.
 
-Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-shell-extension-pop-launcher-super-key) (`pop-launcher-super-key@icesx` by icesx, itself forked from [ManeLippert/gnome-shell-extension-pop-launcher-super-key](https://github.com/ManeLippert/gnome-shell-extension-pop-launcher-super-key) and inspired by System76 Pop Shell) — upgraded with cross-workspace **Open-Window Search & Switching**, fuzzy subsequence scoring, `Ctrl+1..9` shortcut badges, customizable Ocean Cyan / Kelp / Reef / Coral accent borders, and engineered under the same strict [`AGENTS.md`](AGENTS.md) Page Rule and EGO standards as [**Kelp**](https://github.com/UberMetroid/kelp), [**Reef**](https://github.com/UberMetroid/reef), [**Shoal**](https://github.com/UberMetroid/shoal), [**Coral**](https://github.com/UberMetroid/coral), and [**Seabed**](https://github.com/UberMetroid/seabed). Official project artwork is archived in [`brand/`](brand/) (`icon-512.png`, `icon-256.png`, `icon-160.png`, `favicon-64.png`).
+Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-shell-extension-pop-launcher-super-key) (`pop-launcher-super-key@icesx` by icesx, itself forked from [ManeLippert/gnome-shell-extension-pop-launcher-super-key](https://github.com/ManeLippert/gnome-shell-extension-pop-launcher-super-key) and inspired by System76 Pop Shell) — upgraded with cross-workspace **Open-Window Search & Switching**, fuzzy subsequence scoring, `Ctrl+1..9` shortcut badges, customizable Ocean Cyan / Kelp / Reef / Coral accent borders, and engineered under the same strict [`AGENTS.md`](AGENTS.md) Page Rule and EGO standards as [**Kelp**](https://github.com/studio2201/kelp), [**Reef**](https://github.com/studio2201/reef), [**Shoal**](https://github.com/studio2201/shoal), [**Coral**](https://github.com/studio2201/coral), and [**Seabed**](https://github.com/studio2201/seabed). Official project artwork is archived in [`brand/`](brand/) (`icon-512.png`, `icon-256.png`, `icon-160.png`, `favicon-64.png`).
 
-> 🎓 **Support Tide — [Tuition, Not Coffee — Help send my daughter to college](https://ubermetroid.github.io/tuition-not-coffee)** · 🌐 [**Project Website (`ubermetroid.github.io/tide`)**](https://ubermetroid.github.io/tide/) · ⭐ [**Star UberMetroid/tide on GitHub**](https://github.com/UberMetroid/tide)
+> 🎓 **Support Tide — [Tuition, Not Coffee — Help send my daughter to college](https://ubermetroid.github.io/tuition-not-coffee)** · 🌐 [**Project Website (`studio2201.github.io/tide`)**](https://studio2201.github.io/tide/) · ⭐ [**Star studio2201/tide on GitHub**](https://github.com/studio2201/tide)
 
 ---
 
@@ -32,17 +32,17 @@ Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-
 
 ## Quick Install
 
-Download `tide@ubermetroid.github.io.shell-extension.zip` from [**GitHub Releases (`v1.1.0`)**](https://github.com/UberMetroid/tide/releases/latest):
+Download `tide@studio2201.github.io.shell-extension.zip` from [**GitHub Releases (`v1.2.0`)**](https://github.com/studio2201/tide/releases/latest):
 
 ```bash
-gnome-extensions install --force tide@ubermetroid.github.io.shell-extension.zip
-gnome-extensions enable tide@ubermetroid.github.io
+gnome-extensions install --force tide@studio2201.github.io.shell-extension.zip
+gnome-extensions enable tide@studio2201.github.io
 ```
 
 Open the 3-tab Libadwaita Preferences window anytime by clicking the gear icon inside the Tide launcher bar, or by running:
 
 ```bash
-gnome-extensions prefs tide@ubermetroid.github.io
+gnome-extensions prefs tide@studio2201.github.io
 ```
 
 ---
@@ -53,7 +53,7 @@ gnome-extensions prefs tide@ubermetroid.github.io
 | :--- | :--- |
 | **1. Launcher & Search** | **Super Key Action** (`Tide Application & Window Launcher`, `GNOME Activities Overview`, `GNOME Overview Application Grid`), **Launch with `Super+Enter` Shortcut** toggle (`<Super>Return` / `<Super>KP_Enter`), **Clear Search Query When Opening** toggle, **Close Launcher on Outside Click** toggle, **Search Open Windows Across Workspaces** toggle, **Sort Applications by Recent Usage** toggle, **Maximum Search Results** (`3–15`, default `9`), **Show Application Descriptions & Workspace Subtitles** toggle, **Show `Ctrl+1..Ctrl+9` Quick-Launch Badges** toggle, and **Reset to Tide Defaults**. |
 | **2. Appearance & Styling** | **Launcher Dialog Width** (`480–960 px`, default `680 px`), **Result Application Icon Size** (`24–64 px`, default `32 px`), **Dialog Surface Opacity** (`60–100%`, default `96%`), **Show Launcher Accent Border** toggle, **Accent Border Color** picker, **Quick Color Presets** (*Ocean Cyan*, *Kelp Emerald*, *Gruvbox Amber*, *Coral Red*), **Sync Color Across Suite** (`Sync Suite Color`), **Border Width** (`0–8 px`, default `2 px`), and **Border Corner Radius** (`0–36 px`, default 18 px). |
-| **3. About & Support** | Release version (`v1.1.0`), `GPL-3.0-or-later` license & `icesx` / `ManeLippert` (`Pop Launcher Super-Key Standalone`) attribution, **Star Tide on GitHub**, **Tuition, Not Coffee — Help send my daughter to college**, **Project Website**, and **Report an Issue**. |
+| **3. About & Support** | Release version (`v1.2.0`), `GPL-3.0-or-later` license & `icesx` / `ManeLippert` (`Pop Launcher Super-Key Standalone`) attribution, **Star Tide on GitHub**, **Tuition, Not Coffee — Help send my daughter to college**, **Project Website**, and **Report an Issue**. |
 
 ---
 
@@ -90,7 +90,7 @@ gjs -m tests/verify.js
 gnome-extensions pack extension --force --out-dir=dist \
   --schema=schemas/org.gnome.shell.extensions.tide.gschema.xml \
   --extra-source=launcher --extra-source=ui
-pipx run shexli dist/tide@ubermetroid.github.io.shell-extension.zip
+pipx run shexli dist/tide@studio2201.github.io.shell-extension.zip
 ```
 
 ---
@@ -100,8 +100,8 @@ pipx run shexli dist/tide@ubermetroid.github.io.shell-extension.zip
 If Tide, Coral, Seabed, Shoal, Reef, and Kelp improve your daily Linux workflow, please consider supporting development:
 
 - 🎓 **Sponsor / Donate**: [**Tuition, Not Coffee — Help send my daughter to college**](https://ubermetroid.github.io/tuition-not-coffee)
-- 🌐 **Project Website**: [**ubermetroid.github.io/tide**](https://ubermetroid.github.io/tide/)
-- ⭐ **Star on GitHub**: [**github.com/UberMetroid/tide**](https://github.com/UberMetroid/tide)
+- 🌐 **Project Website**: [**studio2201.github.io/tide**](https://studio2201.github.io/tide/)
+- ⭐ **Star on GitHub**: [**github.com/studio2201/tide**](https://github.com/studio2201/tide)
 
 ---
 

@@ -1,11 +1,11 @@
 {
     "name": "Studio 2201: Tide (App Launcher)",
     "description": "Zero-subprocess, Wayland-native Super & Super+Enter application and open-window launcher for GNOME Shell with fuzzy search, Ctrl+1..9 quick launch, and custom accent borders.\n\nDerived from Pop Launcher Super-Key Standalone by icesx & ManeLippert (GPL-3.0-or-later).",
-    "uuid": "tide@ubermetroid.github.io",
-    "url": "https://github.com/UberMetroid/tide",
+    "uuid": "tide@studio2201.github.io",
+    "url": "https://github.com/studio2201/tide",
     "settings-schema": "org.gnome.shell.extensions.tide",
-    "gettext-domain": "tide@ubermetroid.github.io",
-    "version-name": "1.1.0",
+    "gettext-domain": "tide@studio2201.github.io",
+    "version-name": "1.2.0",
     "shell-version": [
         "45",
         "46",
