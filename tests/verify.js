@@ -8,7 +8,7 @@ import {
     format_shortcut_badge, is_pointer_stationary, normalize_query, rank_launcher_results, score_candidate_match,
 } from '../extension/launcher/search_engine.js';
 import { build_dialog_surface_css, build_entry_focus_css, build_selected_row_css, compute_scroll_height } from '../extension/ui/launcher_style.js';
-import { format_rgba, is_dark_rgba, parse_rgba, text_color_for_css } from '../extension/ui/settings/color.js';
+import { SUITE_COLOR_TARGETS, format_rgba, is_dark_rgba, parse_rgba, sync_color_across_suite, text_color_for_css } from '../extension/ui/settings/color.js';
 import { DEFAULT_TOGGLE_SHORTCUTS, ExtensionSettings, OVERLAY_KEY_ACTIONS } from '../extension/ui/settings/gsettings.js';
 import { BORDER_PRESETS, build_about_page, build_launcher_styling_page } from '../extension/ui/settings/prefs_pages.js';
 
@@ -119,7 +119,8 @@ function verify_process_boundaries_and_invariants() {
         '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler', 'allowKeybinding', 'stickykeys-enable',
         'addKeybinding', 'removeKeybinding', 'SYSTEM_MODAL', 'name="enable-super-enter"', 'name="toggle-launcher"',
         '"45"', '"50"', '"settings-schema": "org.gnome.shell.extensions.tide"', 'name="overlay-key-action"',
-        'name="search-open-windows"', '1.0.3', 'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
+        'name="search-open-windows"', '1.1.0', '"name": "Studio 2201: Tide (App Launcher)"', 'Sync Color Across Suite', 'sync_color_across_suite',
+        'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
         'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected', 'Clutter.ActorAlign.START',
     ];
     for (const req of reqs) assert(combined.includes(req), `Missing invariant: ${req}`);
@@ -138,7 +139,8 @@ async function verify_behavioral_and_gtk_suite() {
         Gio.File.new_for_path(GLib.build_filenamev([EXT_ROOT, 'schemas', schema_xml])).copy(dst_xml, Gio.FileCopyFlags.OVERWRITE, null, null);
         assert(Gio.Subprocess.new(['glib-compile-schemas', tmp_dir], Gio.SubprocessFlags.NONE).wait_check(null), 'schema');
         const src = Gio.SettingsSchemaSource.new_from_directory(tmp_dir, Gio.SettingsSchemaSource.get_default(), false);
-        const ext_settings = new Gio.Settings({ settings_schema: src.lookup('org.gnome.shell.extensions.tide', true), backend: Gio.memory_settings_backend_new() });
+        const mem_backend = Gio.memory_settings_backend_new();
+        const ext_settings = new Gio.Settings({ settings_schema: src.lookup('org.gnome.shell.extensions.tide', true), backend: mem_backend });
         const s = new ExtensionSettings(ext_settings);
         assert(s.overlay_key_action() === 'launcher' && s.enable_super_enter() && s.max_results() === 9 && s.search_open_windows(), 'defs');
         assert(s.toggle_launcher().length === 2 && s.toggle_launcher()[0] === '<Super>Return' && s.toggle_launcher()[1] === '<Super>KP_Enter', 'toggle_launcher defs');
@@ -160,28 +162,28 @@ async function verify_behavioral_and_gtk_suite() {
         assert(format_rgba(parse_rgba('#0ff8')) === `rgba(0, 255, 255, ${136 / 255})`, '4-digit hex #RGBA');
         assert(format_rgba(parse_rgba('rgba(10, 20, 30, 5e-1)')) === 'rgba(10, 20, 30, 0.5)', 'scientific float rgba');
         assert(format_rgba(parse_rgba('#zzzzzz')) === 'rgba(106, 215, 225, 1)', 'invalid hex falls back to Ocean Cyan');
-
         const surf_css = build_dialog_surface_css(true, 2, 18, 'rgb(106,215,225)', 96);
         assert(surf_css.includes('margin-top: 160px;') && surf_css.includes('border: 2px solid rgba(106, 215, 225, 1);') && surf_css.includes('border-radius: 18px;'), 'surface css');
         assert(build_dialog_surface_css(false, 2, 18, 'rgb(106,215,225)', 0).includes('rgba(18, 28, 38, 0.6)'), 'zero opacity clamps to 0.6');
         assert(build_entry_focus_css(true, 'rgb(106,215,225)') === 'border: 1px solid rgba(106, 215, 225, 1);', 'entry css');
         assert(build_selected_row_css('rgba(106,215,225,0.5)').includes('rgba(106, 215, 225, 0.10)'), 'selected row alpha scale');
         assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 300 && compute_scroll_height(20) === 420, 'scroll height');
-
         s.reset_defaults();
         assert(s.enable_super_enter() && s.toggle_launcher()[0] === '<Super>Return' && s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
-
+        const tide_sdir = GLib.build_filenamev([tmp_dir, 'tide@ubermetroid.github.io', 'schemas']);
+        GLib.mkdir_with_parents(tide_sdir, 0o755);
+        comp.copy(Gio.File.new_for_path(GLib.build_filenamev([tide_sdir, 'gschemas.compiled'])), Gio.FileCopyFlags.OVERWRITE, null, null);
+        assert(SUITE_COLOR_TARGETS.length === 5 && sync_color_across_suite('#102030', tmp_dir, mem_backend) === 1 && s.border_color_rgba() === 'rgba(16, 32, 48, 1)', 'suite sync');
+        for (const p of [GLib.build_filenamev([tide_sdir, 'gschemas.compiled']), tide_sdir, GLib.build_filenamev([tmp_dir, 'tide@ubermetroid.github.io'])]) Gio.File.new_for_path(p).delete(null);
+        s.reset_defaults();
         assert(normalize_query('  FireFox  ') === 'firefox' && normalize_query(null) === '', 'normalize_query');
         assert(format_shortcut_badge(0, true) === 'Ctrl+1' && format_shortcut_badge(9, true) === '' && format_shortcut_badge(0, false) === '', 'badge');
         assert(is_pointer_stationary([10, 20], 11, 21) && !is_pointer_stationary([10, 20], 14, 20) && !is_pointer_stationary(null, 0, 0), 'hover guard');
         const c_ff = { id: 'org.mozilla.firefox.desktop', name: 'Firefox', description: 'Web Browser', keywords: 'internet web' };
         const c_files = { id: 'org.gnome.Nautilus.desktop', name: 'Files', description: 'Access and organize files', keywords: 'folder manager' };
-        assert(score_candidate_match(c_ff, 'firefox') === 1000, 'exact match score');
-        assert(score_candidate_match(c_ff, 'fire') > score_candidate_match(c_ff, 'browser'), 'prefix beats description');
+        assert(score_candidate_match(c_ff, 'firefox') === 1000 && score_candidate_match(c_ff, 'fire') > score_candidate_match(c_ff, 'browser'), 'exact & prefix score');
         assert(score_candidate_match(c_files, 'nautilus') > score_candidate_match(c_files, 'organize'), 'desktop id beats description');
-        assert(score_candidate_match(c_files, 'ffx') === 0 && score_candidate_match(c_ff, 'ffx') > 0, 'subsequence fuzzy');
-        assert(score_candidate_match(c_ff, 'ffx') > score_candidate_match({ id: 'b', name: 'zzzzFirefox' }, 'ffx'), 'leading gap penalty');
-
+        assert(score_candidate_match(c_files, 'ffx') === 0 && score_candidate_match(c_ff, 'ffx') > score_candidate_match({ id: 'b', name: 'zzzzFirefox' }, 'ffx'), 'fuzzy');
         const mock_sys = {
             get_installed: () => [
                 { get_id: () => 'hidden.desktop', should_show: () => false },
@@ -193,7 +195,6 @@ async function verify_behavioral_and_gtk_suite() {
         const apps_alpha = collect_installed_apps(mock_sys, null, false);
         const apps_usage = collect_installed_apps(mock_sys, { compare: (a, b) => (a === 'b.desktop' ? -1 : (b === 'b.desktop' ? 1 : 0)) }, true);
         assert(apps_alpha.length === 2 && apps_alpha[0].name === 'Alpha' && apps_usage[0].name === 'Beta', 'collect_installed_apps alpha & usage');
-
         const mock_wm = {
             get_n_workspaces: () => 2,
             get_workspace_by_index: (idx) => ({ list_windows: () => (idx === 0 ? [
@@ -204,10 +205,8 @@ async function verify_behavioral_and_gtk_suite() {
         const open_wins = collect_open_windows(mock_wm, null);
         assert(open_wins.length === 2 && open_wins[0].id === 'window:0:10' && open_wins[1].id === 'window:0:11', 'collect_open_windows unique ids');
         assert(compute_scroll_height(5, true) === 300 && compute_scroll_height(5, false) === 220, 'scroll height descriptions toggle');
-
         const ranked_empty = rank_launcher_results(apps_alpha, open_wins, '', 9), ranked_q = rank_launcher_results(apps_alpha, open_wins, 'tide repo', 9);
         assert(ranked_empty.length === 2 && ranked_empty[0].kind === 'app' && ranked_q.length === 2 && ranked_q[0].kind === 'window', 'rank_launcher_results');
-
         let Gtk = null, Adw = null;
         try { Gtk = (await import('gi://Gtk?version=4.0')).default; Adw = (await import('gi://Adw?version=1')).default; } catch (_e) { /* no Gtk4 typelib */ }
         if (Gtk && Adw && Gtk.init_check()) {

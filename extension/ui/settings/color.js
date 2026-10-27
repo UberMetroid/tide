@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// CSS color parser, sRGB relative luminance calculator, and contrast palette selector.
+// CSS color parser, sRGB relative luminance calculator, contrast palette selector, and suite color sync.
+
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 const DEFAULT_RGBA = Object.freeze({ red: 106, green: 215, blue: 225, alpha: 1.0 });
+
+export const SUITE_COLOR_TARGETS = Object.freeze([
+    Object.freeze({ uuid: 'coral@ubermetroid.github.io', schema_id: 'org.gnome.shell.extensions.coral', key: 'border-color-rgba' }),
+    Object.freeze({ uuid: 'kelp@ubermetroid.github.io', schema_id: 'org.gnome.shell.extensions.kelp', key: 'hint-color-rgba' }),
+    Object.freeze({ uuid: 'reef@ubermetroid.github.io', schema_id: 'org.gnome.shell.extensions.reef', key: 'border-color-rgba' }),
+    Object.freeze({ uuid: 'seabed@ubermetroid.github.io', schema_id: 'org.gnome.shell.extensions.seabed', key: 'border-color-rgba' }),
+    Object.freeze({ uuid: 'tide@ubermetroid.github.io', schema_id: 'org.gnome.shell.extensions.tide', key: 'border-color-rgba' }),
+]);
 
 function clamp_byte(v) {
     const n = Number(v);
@@ -78,4 +89,32 @@ export function is_dark_rgba(rgba) {
 export function text_color_for_css(css_color) {
     const parsed = parse_rgba(css_color);
     return is_dark_rgba(parsed) ? '#ffffff' : '#000000';
+}
+
+export function sync_color_across_suite(css_color, ext_base_dir = null, backend = null) {
+    const normalized = format_rgba(parse_rgba(css_color));
+    const base_dir = typeof ext_base_dir === 'string' && ext_base_dir.length > 0
+        ? ext_base_dir
+        : GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell', 'extensions']);
+    const default_source = Gio.SettingsSchemaSource.get_default();
+    let updated = 0;
+
+    for (const target of SUITE_COLOR_TARGETS) {
+        const schema_dir = GLib.build_filenamev([base_dir, target.uuid, 'schemas']);
+        const compiled = GLib.build_filenamev([schema_dir, 'gschemas.compiled']);
+        if (!GLib.file_test(compiled, GLib.FileTest.EXISTS)) continue;
+        try {
+            const source = Gio.SettingsSchemaSource.new_from_directory(schema_dir, default_source, false);
+            const schema = source.lookup(target.schema_id, true);
+            if (!schema || !schema.has_key(target.key)) continue;
+            const gsettings = backend
+                ? new Gio.Settings({ settings_schema: schema, backend })
+                : new Gio.Settings({ settings_schema: schema });
+            if (gsettings.set_string(target.key, normalized)) updated += 1;
+        } catch (_e) {
+            continue;
+        }
+    }
+    Gio.Settings.sync();
+    return updated;
 }
