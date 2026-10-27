@@ -5,7 +5,7 @@
     "url": "https://github.com/studio2201/tide",
     "settings-schema": "org.gnome.shell.extensions.tide",
     "gettext-domain": "tide@studio2201.github.io",
-    "version-name": "1.2.1",
+    "version-name": "1.2.2",
     "shell-version": [
         "45",
         "46",

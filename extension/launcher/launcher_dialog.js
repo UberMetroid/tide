@@ -99,10 +99,12 @@ export class LauncherDialog {
         this._dialog.contentLayout.spacing = 12;
         const surface = this._get_surface_actor();
         if (surface) {
+            const mon_h = Main.layoutManager.primaryMonitor?.height || global.stage?.height || 1440;
+            const top_px = Math.max(240, Math.round(mon_h * 0.46) - 48);
             surface.set_style(build_dialog_surface_css(
                 this.settings.show_dialog_border(), this.settings.border_width(),
                 this.settings.border_radius(), this.settings.border_color_rgba(),
-                this.settings.background_opacity(),
+                this.settings.background_opacity(), top_px,
             ));
         }
         this._entry.set_style(build_entry_focus_css(

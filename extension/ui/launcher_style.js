@@ -3,13 +3,16 @@
 
 import { format_rgba, parse_rgba } from './settings/color.js';
 
-export function build_dialog_surface_css(show_border, border_width, border_radius, border_color_rgba, bg_opacity) {
+export function build_dialog_surface_css(
+    show_border, border_width, border_radius, border_color_rgba, bg_opacity, top_offset_px = 460,
+) {
     const r = Math.max(0, Math.min(36, Math.round(Number(border_radius) || 0)));
+    const top_px = Math.max(120, Math.min(1200, Math.round(Number(top_offset_px) || 460)));
     const raw_op = Number(bg_opacity);
     const pct = Number.isFinite(raw_op) ? raw_op : 96;
     const op = Math.max(0.6, Math.min(1.0, pct / 100));
     const op_str = Math.round(op * 100) / 100;
-    const bg = `margin-top: 160px; background-color: rgba(18, 28, 38, ${op_str});`;
+    const bg = `margin-top: ${top_px}px; background-color: rgba(18, 28, 38, ${op_str});`;
     if (!show_border) {
         return `${bg} border: 1px solid rgba(255, 255, 255, 0.12); border-radius: ${r}px;`;
     }
