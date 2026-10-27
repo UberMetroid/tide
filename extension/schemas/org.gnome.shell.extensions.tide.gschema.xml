@@ -6,6 +6,16 @@
       <summary>Super key action</summary>
       <description>Controls the action of the overlay key (Super): launcher, overview, or app-grid</description>
     </key>
+    <key name="enable-super-enter" type="b">
+      <default>true</default>
+      <summary>Enable Super+Enter launcher shortcut</summary>
+      <description>Bind Super+Enter (Return and KP_Enter) to open or close the Tide launcher</description>
+    </key>
+    <key name="toggle-launcher" type="as">
+      <default><![CDATA[['<Super>Return','<Super>KP_Enter']]]></default>
+      <summary>Toggle Tide launcher shortcut</summary>
+      <description>Keyboard accelerators that open or close the Tide application and open-window launcher</description>
+    </key>
     <key name="max-results" type="i">
       <range min="3" max="15"/>
       <default>9</default>

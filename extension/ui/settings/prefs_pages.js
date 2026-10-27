@@ -182,7 +182,7 @@ export function build_launcher_styling_page(ext_settings, settings, signals) {
     return page;
 }
 
-export function build_about_page(version_name = '1.0.1') {
+export function build_about_page(version_name = '1.0.2') {
     const page = new Adw.PreferencesPage({
         title: 'About & Support',
         icon_name: 'help-about-symbolic',
@@ -190,7 +190,7 @@ export function build_about_page(version_name = '1.0.1') {
 
     const header_group = new Adw.PreferencesGroup({
         title: 'Tide — Super-Key Application &amp; Open-Window Launcher',
-        description: 'Zero-subprocess, Wayland-native Super-key launcher for GNOME 45–50 with instant fuzzy ' +
+        description: 'Zero-subprocess, Wayland-native Super &amp; Super+Enter launcher for GNOME 45–50 with instant fuzzy ' +
             'application and open-window search, Ctrl+1..9 shortcuts, and custom accent borders.',
     });
 
@@ -198,7 +198,7 @@ export function build_about_page(version_name = '1.0.1') {
         title: 'Tide Release Version',
         subtitle: 'Zero-subprocess, zero-telemetry Wayland Super-key application launcher for GNOME Shell',
     });
-    const clean_ver = String(version_name || '1.0.1').replace(/^v/, '');
+    const clean_ver = String(version_name || '1.0.2').replace(/^v/, '');
     ver_row.add_suffix(new Gtk.Label({
         label: `v${clean_ver}`, valign: Gtk.Align.CENTER, css_classes: ['monospace'],
     }));

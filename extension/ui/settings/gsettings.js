@@ -4,9 +4,12 @@
 import { format_rgba, parse_rgba } from './color.js';
 
 export const OVERLAY_KEY_ACTIONS = Object.freeze(['launcher', 'overview', 'app-grid']);
+export const DEFAULT_TOGGLE_SHORTCUTS = Object.freeze(['<Super>Return', '<Super>KP_Enter']);
 
 const SCHEMA_SPEC = Object.freeze({
     overlay_key_action: Object.freeze({ key: 'overlay-key-action', type: 'enum', values: OVERLAY_KEY_ACTIONS, def: 'launcher' }),
+    enable_super_enter: Object.freeze({ key: 'enable-super-enter', type: 'bool', def: true }),
+    toggle_launcher: Object.freeze({ key: 'toggle-launcher', type: 'strv', def: DEFAULT_TOGGLE_SHORTCUTS }),
     max_results: Object.freeze({ key: 'max-results', type: 'int', min: 3, max: 15, def: 9 }),
     search_open_windows: Object.freeze({ key: 'search-open-windows', type: 'bool', def: true }),
     sort_by_usage: Object.freeze({ key: 'sort-by-usage', type: 'bool', def: true }),
@@ -47,10 +50,12 @@ export class ExtensionSettings {
 
     _read(spec) {
         if (!this._has(spec.key)) {
+            if (spec.type === 'strv') return Array.from(spec.def);
             return spec.type === 'rgba' ? format_rgba(parse_rgba(spec.def)) : spec.def;
         }
         if (spec.type === 'bool') return this.gio.get_boolean(spec.key);
         if (spec.type === 'int') return clamp_int(this.gio.get_int(spec.key), spec.min, spec.max, spec.def);
+        if (spec.type === 'strv') return this.gio.get_strv(spec.key);
         if (spec.type === 'enum') {
             const raw = this.gio.get_string(spec.key);
             return spec.values.includes(raw) ? raw : spec.def;
@@ -66,6 +71,9 @@ export class ExtensionSettings {
         } else if (spec.type === 'int') {
             const clamped = clamp_int(val, spec.min, spec.max, spec.def);
             if (this.gio.get_int(spec.key) !== clamped) this.gio.set_int(spec.key, clamped);
+        } else if (spec.type === 'strv') {
+            const next = Array.isArray(val) ? val.map(String) : Array.from(spec.def);
+            this.gio.set_strv(spec.key, next);
         } else if (spec.type === 'enum') {
             const next = spec.values.includes(val) ? val : spec.def;
             if (this.gio.get_string(spec.key) !== next) this.gio.set_string(spec.key, next);
@@ -85,6 +93,10 @@ export class ExtensionSettings {
 
     overlay_key_action() { return this._read(SCHEMA_SPEC.overlay_key_action); }
     set_overlay_key_action(v) { this._write(SCHEMA_SPEC.overlay_key_action, v); }
+    enable_super_enter() { return this._read(SCHEMA_SPEC.enable_super_enter); }
+    set_enable_super_enter(v) { this._write(SCHEMA_SPEC.enable_super_enter, v); }
+    toggle_launcher() { return this._read(SCHEMA_SPEC.toggle_launcher); }
+    set_toggle_launcher(v) { this._write(SCHEMA_SPEC.toggle_launcher, v); }
     max_results() { return this._read(SCHEMA_SPEC.max_results); }
     set_max_results(v) { this._write(SCHEMA_SPEC.max_results, v); }
     search_open_windows() { return this._read(SCHEMA_SPEC.search_open_windows); }

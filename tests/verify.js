@@ -9,7 +9,7 @@ import {
 } from '../extension/launcher/search_engine.js';
 import { build_dialog_surface_css, build_entry_focus_css, build_selected_row_css, compute_scroll_height } from '../extension/ui/launcher_style.js';
 import { format_rgba, is_dark_rgba, parse_rgba, text_color_for_css } from '../extension/ui/settings/color.js';
-import { ExtensionSettings, OVERLAY_KEY_ACTIONS } from '../extension/ui/settings/gsettings.js';
+import { DEFAULT_TOGGLE_SHORTCUTS, ExtensionSettings, OVERLAY_KEY_ACTIONS } from '../extension/ui/settings/gsettings.js';
 import { BORDER_PRESETS, build_about_page, build_launcher_styling_page } from '../extension/ui/settings/prefs_pages.js';
 
 const BANNED_STEMS = new Set(['util', 'utils', 'lib', 'helper', 'helpers', 'common', 'misc', 'shared', 'base', 'core', 'types', 'mod']);
@@ -117,8 +117,9 @@ function verify_process_boundaries_and_invariants() {
         'Adw.PreferencesPage', 'close-request', 'Star Tide on GitHub', 'Tuition, Not Coffee — Help send my daughter to college',
         'https://ubermetroid.github.io/tuition-not-coffee', 'Derived from Pop Launcher Super-Key Standalone by icesx',
         '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler', 'allowKeybinding', 'stickykeys-enable',
+        'addKeybinding', 'removeKeybinding', 'SYSTEM_MODAL', 'name="enable-super-enter"', 'name="toggle-launcher"',
         '"45"', '"50"', '"settings-schema": "org.gnome.shell.extensions.tide"', 'name="overlay-key-action"',
-        'name="search-open-windows"', '1.0.1', 'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
+        'name="search-open-windows"', '1.0.2', 'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
         'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected',
     ];
     for (const req of reqs) assert(combined.includes(req), `Missing invariant: ${req}`);
@@ -139,17 +140,16 @@ async function verify_behavioral_and_gtk_suite() {
         const src = Gio.SettingsSchemaSource.new_from_directory(tmp_dir, Gio.SettingsSchemaSource.get_default(), false);
         const ext_settings = new Gio.Settings({ settings_schema: src.lookup('org.gnome.shell.extensions.tide', true), backend: Gio.memory_settings_backend_new() });
         const s = new ExtensionSettings(ext_settings);
-
-        assert(s.overlay_key_action() === 'launcher' && s.max_results() === 9 && s.search_open_windows(), 'defs');
-        assert(s.sort_by_usage() && s.show_descriptions() && s.show_shortcut_badges(), 'row defs');
-        assert(s.clear_search_on_open() && s.close_on_outside_click() && s.dialog_width() === 680, 'dialog defs');
-        assert(s.result_icon_size() === 32 && s.show_dialog_border() && s.border_width() === 2, 'border defs');
-        assert(s.border_radius() === 18 && s.background_opacity() === 96, 'surface defs');
-        assert(OVERLAY_KEY_ACTIONS.length === 3 && BORDER_PRESETS.length === 4, 'enums');
+        assert(s.overlay_key_action() === 'launcher' && s.enable_super_enter() && s.max_results() === 9 && s.search_open_windows(), 'defs');
+        assert(s.toggle_launcher().length === 2 && s.toggle_launcher()[0] === '<Super>Return' && s.toggle_launcher()[1] === '<Super>KP_Enter', 'toggle_launcher defs');
+        assert(s.sort_by_usage() && s.show_descriptions() && s.show_shortcut_badges() && s.clear_search_on_open() && s.close_on_outside_click(), 'row & dialog defs');
+        assert(s.dialog_width() === 680 && s.result_icon_size() === 32 && s.show_dialog_border() && s.border_width() === 2, 'border defs');
+        assert(s.border_radius() === 18 && s.background_opacity() === 96 && OVERLAY_KEY_ACTIONS.length === 3 && DEFAULT_TOGGLE_SHORTCUTS.length === 2 && BORDER_PRESETS.length === 4, 'enums');
         assert(MAX_INDEXED_APPS === 512 && MAX_OPEN_WINDOWS === 128 && MAX_SCANNED_WORKSPACES === 32, 'bounds');
 
         s.set_overlay_key_action('overview'); assert(s.overlay_key_action() === 'overview', 'action overview');
-        s.set_overlay_key_action('invalid'); assert(s.overlay_key_action() === 'launcher', 'action fallback');
+        s.set_overlay_key_action('invalid'); s.set_enable_super_enter(false); s.set_toggle_launcher(['<Super>space']);
+        assert(s.overlay_key_action() === 'launcher' && !s.enable_super_enter() && s.toggle_launcher()[0] === '<Super>space', 'fallback & super+enter');
         s.set_max_results(99); assert(s.max_results() === 15, 'clamp max results');
         s.set_max_results(1); assert(s.max_results() === 3, 'clamp min results');
         s.set_dialog_width(2000); assert(s.dialog_width() === 960, 'clamp dialog width');
@@ -169,7 +169,7 @@ async function verify_behavioral_and_gtk_suite() {
         assert(compute_scroll_height(0) === 64 && compute_scroll_height(5) === 300 && compute_scroll_height(20) === 420, 'scroll height');
 
         s.reset_defaults();
-        assert(s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
+        assert(s.enable_super_enter() && s.toggle_launcher()[0] === '<Super>Return' && s.max_results() === 9 && s.border_color_rgba() === 'rgba(106, 215, 225, 1)', 'reset defaults');
 
         assert(normalize_query('  FireFox  ') === 'firefox' && normalize_query(null) === '', 'normalize_query');
         assert(format_shortcut_badge(0, true) === 'Ctrl+1' && format_shortcut_badge(9, true) === '' && format_shortcut_badge(0, false) === '', 'badge');

@@ -31,7 +31,7 @@ Tide (`tide@ubermetroid.github.io`) is built on four uncompromising engineering 
 
 - **ES2022 Strictness**: Zero `var` declarations (`const`/`let` only) and zero loose equality operators (`===`/`!==` only).
 - **Process Boundary Separation**: `extension/prefs.js` runs in the GTK4 `gnome-extensions-app` process. Neither `prefs.js` nor any module in its import chain (`launcher/search_engine.js`, `ui/launcher_style.js`, `ui/settings/gsettings.js`, `ui/settings/color.js`, `ui/settings/prefs_pages.js`) may import compositor-only typelibs (`gi://Meta`, `gi://Clutter`, `gi://St`, `gi://Shell`, `resource:///org/gnome/shell/*`).
-- **Deterministic EGO Teardown**: `extension/extension.js` performs zero top-level work at import time and deterministically cleans up all `global.display` `overlay-key` signal connections, unblocks the original GNOME Shell `overlay-key` signal handler, restores `Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW)`, cancels named `GLib` timers, destroys the `ModalDialog` launcher, and unloads the stylesheet on `disable()`.
+- **Deterministic EGO Teardown**: `extension/extension.js` performs zero top-level work at import time and deterministically cleans up all `global.display` `overlay-key` signal connections, unblocks the original GNOME Shell `overlay-key` signal handler, removes `Main.wm.removeKeybinding('toggle-launcher')`, restores `Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW)`, cancels named `GLib` timers, destroys the `ModalDialog` launcher, and unloads the stylesheet on `disable()`.
 
 ---
 
@@ -45,8 +45,8 @@ Tide (`tide@ubermetroid.github.io`) is built on four uncompromising engineering 
   - [`extension/extension.js`](extension/extension.js): `TideExtension extends Extension` EGO lifecycle entrypoint.
   - [`extension/prefs.js`](extension/prefs.js): `TidePreferences extends ExtensionPreferences` 3-tab GTK4 / Libadwaita preferences UI.
 - **Super-Key Launcher & Fuzzy Search Engine (`extension/launcher/` — 4 pages)**:
-  - [`launcher_manager.js`](extension/launcher/launcher_manager.js): `global.display` `overlay-key` interceptor, `stickykeys-enable` accessibility guard, stylesheet loader, and named `[tide] style-refresh` timer.
-  - [`launcher_dialog.js`](extension/launcher/launcher_dialog.js): `ModalDialog` launcher UI with search entry, quick preferences button, `Up`/`Down`/`Enter`/`Esc`/`Ctrl+1..9` keyboard navigation, and outside-click dismissal.
+  - [`launcher_manager.js`](extension/launcher/launcher_manager.js): `global.display` `overlay-key` & `Main.wm.addKeybinding('toggle-launcher')` (`Super+Enter`) interceptor, `stickykeys-enable` accessibility guard, stylesheet loader, and named `[tide] style-refresh` timer.
+  - [`launcher_dialog.js`](extension/launcher/launcher_dialog.js): `ModalDialog` launcher UI with search entry, quick preferences button, `Up`/`Down`/`Enter`/`Super+Enter`/`Esc`/`Ctrl+1..9` keyboard navigation, and outside-click dismissal.
   - [`search_engine.js`](extension/launcher/search_engine.js): Pure bounded application (`MAX_INDEXED_APPS = 512`) and open-window (`MAX_OPEN_WINDOWS = 128`) indexer, query normalizer, and fuzzy scorer (`score_candidate_match`, `rank_launcher_results`).
   - [`result_row.js`](extension/launcher/result_row.js): `St.Button` result row builder with application icon texture, ellipsized title/description, `Ctrl+1..9` shortcut badge, and stationary-pointer hover guard.
 - **UI, Modal Styling & Settings (`extension/ui/` — 4 JS pages + stylesheet)**:

@@ -38,6 +38,12 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
         },
     );
 
+    const [ent_row, ent_sw] = make_switch_row(
+        'Launch with Super+Enter Shortcut',
+        'Bind Super+Enter (&lt;Super&gt;Return and &lt;Super&gt;KP_Enter) to open or close the Tide launcher',
+        settings.enable_super_enter(),
+        (v) => settings.set_enable_super_enter(v),
+    );
     const [clr_row, clr_sw] = make_switch_row(
         'Clear Search Query When Opening',
         'Reset the search entry text whenever the Tide launcher modal opens',
@@ -51,7 +57,7 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
         (v) => settings.set_close_on_outside_click(v),
     );
 
-    for (const r of [act_row, clr_row, out_row]) key_group.add(r);
+    for (const r of [act_row, ent_row, clr_row, out_row]) key_group.add(r);
     page.add(key_group);
 
     const search_group = new Adw.PreferencesGroup({
@@ -92,7 +98,7 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
 
     const reset_row = new Adw.ActionRow({
         title: 'Reset to Tide Defaults',
-        subtitle: 'Restore Super-key launcher mode, 9 results, open-window search, and Ocean Cyan border',
+        subtitle: 'Restore Super &amp; Super+Enter launcher shortcuts, 9 results, open-window search, and Ocean Cyan border',
     });
     const reset_btn = new Gtk.Button({
         label: 'Reset Defaults',
@@ -109,6 +115,7 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
     const sync_launcher = () => {
         const a_idx = Math.max(0, OVERLAY_KEY_ACTIONS.indexOf(settings.overlay_key_action()));
         if (act_combo.get_active() !== a_idx) act_combo.set_active(a_idx);
+        if (ent_sw.active !== settings.enable_super_enter()) ent_sw.active = settings.enable_super_enter();
         if (clr_sw.active !== settings.clear_search_on_open()) clr_sw.active = settings.clear_search_on_open();
         if (out_sw.active !== settings.close_on_outside_click()) out_sw.active = settings.close_on_outside_click();
         if (win_sw.active !== settings.search_open_windows()) win_sw.active = settings.search_open_windows();
@@ -118,7 +125,7 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
         if (bdg_sw.active !== settings.show_shortcut_badges()) bdg_sw.active = settings.show_shortcut_badges();
     };
     const keys = [
-        'overlay-key-action', 'clear-search-on-open', 'close-on-outside-click',
+        'overlay-key-action', 'enable-super-enter', 'clear-search-on-open', 'close-on-outside-click',
         'search-open-windows', 'sort-by-usage', 'max-results', 'show-descriptions', 'show-shortcut-badges',
     ];
     for (const k of keys) {

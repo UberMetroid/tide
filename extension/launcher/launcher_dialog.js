@@ -188,18 +188,16 @@ export class LauncherDialog {
 
     _on_key_press(event) {
         const sym = event.get_key_symbol(), state = event.get_state();
+        const non_lock = (state & Clutter.ModifierType.MODIFIER_MASK) & ~(Clutter.ModifierType.LOCK_MASK | Clutter.ModifierType.MOD2_MASK);
+        const super_mask = (Clutter.ModifierType.SUPER_MASK ?? 0) | (Clutter.ModifierType.MOD4_MASK ?? 0);
         if (sym === Clutter.KEY_Escape) { this.hide(); return Clutter.EVENT_STOP; }
         if (sym === Clutter.KEY_Return || sym === Clutter.KEY_KP_Enter) {
-            if (!this._entry.clutter_text.has_key_focus()) {
-                this._activate_at(this._selected_index);
-                return Clutter.EVENT_STOP;
-            }
+            if ((non_lock & super_mask) !== 0) { this.hide(); return Clutter.EVENT_STOP; }
+            if (!this._entry.clutter_text.has_key_focus()) { this._activate_at(this._selected_index); return Clutter.EVENT_STOP; }
             return Clutter.EVENT_PROPAGATE;
         }
         if (sym === Clutter.KEY_Up) { this._select(this._selected_index - 1, true); return Clutter.EVENT_STOP; }
         if (sym === Clutter.KEY_Down) { this._select(this._selected_index + 1, true); return Clutter.EVENT_STOP; }
-        const mods = state & Clutter.ModifierType.MODIFIER_MASK;
-        const non_lock = mods & ~(Clutter.ModifierType.LOCK_MASK | Clutter.ModifierType.MOD2_MASK);
         if (non_lock === Clutter.ModifierType.CONTROL_MASK && sym >= Clutter.KEY_1 && sym <= Clutter.KEY_9) {
             this._activate_at(sym - Clutter.KEY_1);
             return Clutter.EVENT_STOP;
