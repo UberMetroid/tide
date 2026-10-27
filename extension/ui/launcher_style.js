@@ -9,7 +9,7 @@ export function build_dialog_surface_css(show_border, border_width, border_radiu
     const pct = Number.isFinite(raw_op) ? raw_op : 96;
     const op = Math.max(0.6, Math.min(1.0, pct / 100));
     const op_str = Math.round(op * 100) / 100;
-    const bg = `background-color: rgba(18, 28, 38, ${op_str});`;
+    const bg = `margin-top: 160px; background-color: rgba(18, 28, 38, ${op_str});`;
     if (!show_border) {
         return `${bg} border: 1px solid rgba(255, 255, 255, 0.12); border-radius: ${r}px;`;
     }

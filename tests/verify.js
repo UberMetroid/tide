@@ -119,8 +119,8 @@ function verify_process_boundaries_and_invariants() {
         '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler', 'allowKeybinding', 'stickykeys-enable',
         'addKeybinding', 'removeKeybinding', 'SYSTEM_MODAL', 'name="enable-super-enter"', 'name="toggle-launcher"',
         '"45"', '"50"', '"settings-schema": "org.gnome.shell.extensions.tide"', 'name="overlay-key-action"',
-        'name="search-open-windows"', '1.0.2', 'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
-        'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected',
+        'name="search-open-windows"', '1.0.3', 'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
+        'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected', 'Clutter.ActorAlign.START',
     ];
     for (const req of reqs) assert(combined.includes(req), `Missing invariant: ${req}`);
     assert(!combined.includes('Util.ensureActorVisibleInScrollView'), 'Must not call non-existent Util.ensureActorVisibleInScrollView');
@@ -162,7 +162,7 @@ async function verify_behavioral_and_gtk_suite() {
         assert(format_rgba(parse_rgba('#zzzzzz')) === 'rgba(106, 215, 225, 1)', 'invalid hex falls back to Ocean Cyan');
 
         const surf_css = build_dialog_surface_css(true, 2, 18, 'rgb(106,215,225)', 96);
-        assert(surf_css.includes('border: 2px solid rgba(106, 215, 225, 1);') && surf_css.includes('border-radius: 18px;'), 'surface css');
+        assert(surf_css.includes('margin-top: 160px;') && surf_css.includes('border: 2px solid rgba(106, 215, 225, 1);') && surf_css.includes('border-radius: 18px;'), 'surface css');
         assert(build_dialog_surface_css(false, 2, 18, 'rgb(106,215,225)', 0).includes('rgba(18, 28, 38, 0.6)'), 'zero opacity clamps to 0.6');
         assert(build_entry_focus_css(true, 'rgb(106,215,225)') === 'border: 1px solid rgba(106, 215, 225, 1);', 'entry css');
         assert(build_selected_row_css('rgba(106,215,225,0.5)').includes('rgba(106, 215, 225, 0.10)'), 'selected row alpha scale');

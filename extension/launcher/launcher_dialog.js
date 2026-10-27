@@ -33,6 +33,13 @@ export class LauncherDialog {
                 styleClass: 'tide-launcher-dialog', shellReactive: true,
                 destroyOnClose: false, shouldFadeIn: false, shouldFadeOut: false,
             });
+            if (this._dialog._backgroundBin) this._dialog._backgroundBin.x_fill = this._dialog._backgroundBin.y_fill = true;
+            if (this._dialog.dialogLayout) {
+                this._dialog.dialogLayout.x_expand = this._dialog.dialogLayout.y_expand = true;
+                this._dialog.dialogLayout.y_align = Clutter.ActorAlign.START;
+            }
+            const surface = this._get_surface_actor();
+            if (surface) surface.y_align = Clutter.ActorAlign.START;
             this._header = new St.BoxLayout({ style_class: 'tide-launcher-header', x_expand: true });
             this._entry = new St.Entry({ style_class: 'tide-launcher-entry', can_focus: true, x_expand: true });
             this._entry.set_hint_text('Type to search apps & open windows…');
@@ -59,10 +66,7 @@ export class LauncherDialog {
             this._bind_signals();
             this.sync_style();
             this.reload_apps();
-        } catch (err) {
-            this.destroy();
-            throw err;
-        }
+        } catch (err) { this.destroy(); throw err; }
     }
 
     get visible() { return Boolean(this._dialog?.visible); }
@@ -209,13 +213,9 @@ export class LauncherDialog {
         if (!this.settings?.close_on_outside_click()) return Clutter.EVENT_PROPAGATE;
         const surface = this._get_surface_actor();
         if (!surface) return Clutter.EVENT_PROPAGATE;
-        const [x, y] = event.get_coords();
-        const [dx, dy] = surface.get_transformed_position();
+        const [x, y] = event.get_coords(), [dx, dy] = surface.get_transformed_position();
         const [dw, dh] = surface.get_transformed_size?.() || [surface.width, surface.height];
-        if (x < dx || x > dx + dw || y < dy || y > dy + dh) {
-            this.hide();
-            return Clutter.EVENT_STOP;
-        }
+        if (x < dx || x > dx + dw || y < dy || y > dy + dh) { this.hide(); return Clutter.EVENT_STOP; }
         return Clutter.EVENT_PROPAGATE;
     }
 
