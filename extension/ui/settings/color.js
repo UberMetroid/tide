@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// CSS color parser, sRGB relative luminance calculator, contrast palette selector, and suite color sync.
+// CSS color parser, sRGB relative luminance calculator, and suite-wide accent color synchronizer.
 
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
@@ -11,6 +11,7 @@ export const SUITE_COLOR_TARGETS = Object.freeze([
     Object.freeze(['kelp@studio2201.github.io', 'org.gnome.shell.extensions.kelp', 'hint-color-rgba']),
     Object.freeze(['reef@studio2201.github.io', 'org.gnome.shell.extensions.reef', 'border-color-rgba']),
     Object.freeze(['seabed@studio2201.github.io', 'org.gnome.shell.extensions.seabed', 'border-color-rgba']),
+    Object.freeze(['shoal@studio2201.github.io', 'org.gnome.shell.extensions.shoal', 'attention-color-rgba']),
     Object.freeze(['tide@studio2201.github.io', 'org.gnome.shell.extensions.tide', 'border-color-rgba']),
 ]);
 
