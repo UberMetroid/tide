@@ -4,7 +4,7 @@
 import { format_rgba, parse_rgba } from './settings/color.js';
 
 export function build_dialog_surface_css(
-    show_border, border_width, border_radius, border_color_rgba, bg_opacity, top_offset_px = 460,
+    show_border, border_width, border_radius, border_color_rgba, bg_opacity, top_offset_px = 460, is_dark = true,
 ) {
     const r = Math.max(0, Math.min(36, Math.round(Number(border_radius) || 0)));
     const top_px = Math.max(120, Math.min(1200, Math.round(Number(top_offset_px) || 460)));
@@ -12,9 +12,11 @@ export function build_dialog_surface_css(
     const pct = Number.isFinite(raw_op) ? raw_op : 96;
     const op = Math.max(0.6, Math.min(1.0, pct / 100));
     const op_str = Math.round(op * 100) / 100;
-    const bg = `margin-top: ${top_px}px; background-color: rgba(18, 28, 38, ${op_str});`;
+    const bg_rgb = is_dark ? '18, 28, 38' : '246, 248, 250';
+    const bg = `margin-top: ${top_px}px; background-color: rgba(${bg_rgb}, ${op_str});`;
     if (!show_border) {
-        return `${bg} border: 1px solid rgba(255, 255, 255, 0.12); border-radius: ${r}px;`;
+        const bdr_fb = is_dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.14)';
+        return `${bg} border: 1px solid ${bdr_fb}; border-radius: ${r}px;`;
     }
     const w = Math.max(0, Math.min(8, Math.round(Number(border_width) || 0)));
     if (w === 0) {
@@ -24,9 +26,9 @@ export function build_dialog_surface_css(
     return `${bg} border: ${w}px solid ${color}; border-radius: ${r}px;`;
 }
 
-export function build_entry_focus_css(show_border, border_color_rgba) {
+export function build_entry_focus_css(show_border, border_color_rgba, is_dark = true) {
     if (!show_border) {
-        return 'border: 1px solid rgba(255, 255, 255, 0.24);';
+        return is_dark ? 'border: 1px solid rgba(255, 255, 255, 0.24);' : 'border: 1px solid rgba(0, 0, 0, 0.24);';
     }
     const color = format_rgba(parse_rgba(border_color_rgba));
     return `border: 1px solid ${color};`;

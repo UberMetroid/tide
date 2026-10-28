@@ -31,8 +31,11 @@ export function create_result_row(item, index, settings, on_activate, on_hover_s
     });
     name_label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
 
+    const vbox_orient = 'orientation' in St.BoxLayout.prototype
+        ? { orientation: Clutter.Orientation.VERTICAL }
+        : { vertical: true };
     const text_box = new St.BoxLayout({
-        vertical: true,
+        ...vbox_orient,
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER,
     });

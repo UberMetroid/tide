@@ -8,9 +8,9 @@ import Gtk from 'gi://Gtk';
 import { format_rgba, parse_rgba, sync_color_across_suite } from './color.js';
 
 export const BORDER_PRESETS = Object.freeze([
-    ['Ocean Cyan', 'rgb(106,215,225)'],
-    ['Kelp Emerald', 'rgb(46,194,126)'],
     ['Gruvbox Amber', 'rgb(251,184,108)'],
+    ['Kelp Emerald', 'rgb(46,194,126)'],
+    ['Ocean Cyan', 'rgb(106,215,225)'],
     ['Coral Red', 'rgb(255,0,0)'],
 ]);
 
@@ -30,6 +30,7 @@ export function make_spin_row(title, subtitle, value, min, max, step, on_change)
     spin.set_valign(Gtk.Align.CENTER);
     spin.connect('value-changed', () => on_change(spin.get_value_as_int()));
     row.add_suffix(spin);
+    row.activatable_widget = spin;
     return [row, spin];
 }
 
@@ -40,6 +41,7 @@ export function make_combo_row(title, subtitle, items, active_idx, on_change) {
     combo.set_active(Math.max(0, active_idx));
     combo.connect('changed', () => on_change(combo.get_active()));
     row.add_suffix(combo);
+    row.activatable_widget = combo;
     return [row, combo];
 }
 
@@ -105,6 +107,7 @@ export function build_launcher_styling_page(ext_settings, settings, signals) {
     const color_btn = new Gtk.ColorButton({ rgba, use_alpha: true, valign: Gtk.Align.CENTER });
     color_btn.connect('color-set', () => settings.set_border_color_rgba(color_btn.get_rgba().to_string()));
     color_row.add_suffix(color_btn);
+    color_row.activatable_widget = color_btn;
 
     const preset_labels = [...BORDER_PRESETS.map(([label]) => label), 'Custom Color'];
     const match_preset = (color) => {
@@ -130,10 +133,10 @@ export function build_launcher_styling_page(ext_settings, settings, signals) {
         title: 'Sync Color Across Suite',
         subtitle: 'Apply this accent border color to all installed Studio 2201 extensions (Coral, Kelp, Reef, Seabed, Tide)',
     });
-    const sync_suite_btn = new Gtk.Button({ label: 'Sync Suite Color', valign: Gtk.Align.CENTER });
+    const sync_suite_btn = new Gtk.Button({ label: 'Sync Suite Color', valign: Gtk.Align.CENTER, css_classes: ['pill'] });
     sync_suite_btn.connect('clicked', () => {
         const count = sync_color_across_suite(settings.border_color_rgba());
-        sync_suite_btn.set_label(count > 0 ? `Synced (${count})` : 'Sync Suite Color');
+        sync_suite_btn.set_label(`Synced (${count})`);
     });
     sync_suite_row.add_suffix(sync_suite_btn);
     sync_suite_row.activatable_widget = sync_suite_btn;
@@ -177,7 +180,7 @@ export function build_launcher_styling_page(ext_settings, settings, signals) {
     return page;
 }
 
-export function build_about_page(version_name = '1.2.2') {
+export function build_about_page(version_name = '1.3.0') {
     const page = new Adw.PreferencesPage({ title: 'About & Support', icon_name: 'help-about-symbolic' });
 
     const header_group = new Adw.PreferencesGroup({
@@ -190,7 +193,7 @@ export function build_about_page(version_name = '1.2.2') {
         title: 'Tide Release Version',
         subtitle: 'Zero-subprocess, zero-telemetry Wayland Super-key application launcher for GNOME Shell',
     });
-    const clean_ver = String(version_name || '1.2.2').replace(/^v/, '');
+    const clean_ver = String(version_name || '1.3.0').replace(/^v/, '');
     ver_row.add_suffix(new Gtk.Label({ label: `v${clean_ver}`, valign: Gtk.Align.CENTER, css_classes: ['monospace'] }));
     header_group.add(ver_row);
 

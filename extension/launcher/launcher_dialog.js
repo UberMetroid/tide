@@ -22,18 +22,15 @@ export class LauncherDialog {
         this._app_system = Shell.AppSystem.get_default();
         this._app_usage = Shell.AppUsage.get_default();
         this._window_tracker = Shell.WindowTracker.get_default();
-        this._apps = [];
-        this._results = [];
-        this._buttons = [];
-        this._selected_index = -1;
-        this._hover_guard_pos = null;
+        this._apps = []; this._results = []; this._buttons = [];
+        this._selected_index = -1; this._hover_guard_pos = null;
 
         try {
             this._dialog = new ModalDialog({
                 styleClass: 'tide-launcher-dialog', shellReactive: true,
                 destroyOnClose: false, shouldFadeIn: false, shouldFadeOut: false,
             });
-            if (this._dialog._backgroundBin) this._dialog._backgroundBin.x_fill = this._dialog._backgroundBin.y_fill = true;
+            if (this._dialog._backgroundBin) this._dialog._backgroundBin.x_align = this._dialog._backgroundBin.y_align = Clutter.ActorAlign.FILL;
             if (this._dialog.dialogLayout) {
                 this._dialog.dialogLayout.x_expand = this._dialog.dialogLayout.y_expand = true;
                 this._dialog.dialogLayout.y_align = Clutter.ActorAlign.START;
@@ -55,7 +52,8 @@ export class LauncherDialog {
             this._header.add_child(this._prefs_btn);
             this._dialog.contentLayout.add_child(this._header);
 
-            this._list = new St.BoxLayout({ style_class: 'tide-launcher-list', vertical: true, x_expand: true });
+            const list_orient = 'orientation' in St.BoxLayout.prototype ? { orientation: Clutter.Orientation.VERTICAL } : { vertical: true };
+            this._list = new St.BoxLayout({ style_class: 'tide-launcher-list', ...list_orient, x_expand: true });
             this._scroll = new St.ScrollView({
                 style_class: 'tide-launcher-scroll', x_expand: true,
                 hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC,
@@ -63,9 +61,7 @@ export class LauncherDialog {
             this._scroll.set_child(this._list);
             this._dialog.contentLayout.add_child(this._scroll);
 
-            this._bind_signals();
-            this.sync_style();
-            this.reload_apps();
+            this._bind_signals(); this.sync_style(); this.reload_apps();
         } catch (err) { this.destroy(); throw err; }
     }
 
@@ -95,20 +91,23 @@ export class LauncherDialog {
 
     sync_style() {
         if (!this._dialog || !this.settings) return;
+        const is_dark = this.settings.is_dark();
         this._dialog.contentLayout.width = Math.max(448, this.settings.dialog_width() - 32);
         this._dialog.contentLayout.spacing = 12;
         const surface = this._get_surface_actor();
         if (surface) {
+            if (is_dark) surface.remove_style_class_name?.('tide-launcher-light');
+            else surface.add_style_class_name?.('tide-launcher-light');
             const mon_h = Main.layoutManager.primaryMonitor?.height || global.stage?.height || 1440;
             const top_px = Math.max(240, Math.round(mon_h * 0.46) - 48);
             surface.set_style(build_dialog_surface_css(
                 this.settings.show_dialog_border(), this.settings.border_width(),
                 this.settings.border_radius(), this.settings.border_color_rgba(),
-                this.settings.background_opacity(), top_px,
+                this.settings.background_opacity(), top_px, is_dark,
             ));
         }
         this._entry.set_style(build_entry_focus_css(
-            this.settings.show_dialog_border(), this.settings.border_color_rgba(),
+            this.settings.show_dialog_border(), this.settings.border_color_rgba(), is_dark,
         ));
         if (this.visible) this.refresh_results();
     }

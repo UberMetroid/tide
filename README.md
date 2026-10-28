@@ -26,13 +26,13 @@ Derived from [Pop Launcher Super-Key Standalone](https://github.com/icesx/gnome-
 | **Open-Window & App Fuzzy Search** | **Active** | Displays top installed applications (`Shell.AppSystem` + `Shell.AppUsage` frequency) on open, and fuzzy-matches both installed applications and open windows across all workspaces as you type. |
 | **`Ctrl+1` .. `Ctrl+9` Quick Launch** | **Built-in** | Launch or focus any of the first nine results immediately with `Ctrl+1` through `Ctrl+9`, or navigate with `Up` / `Down` and `Enter`. |
 | **Stationary-Pointer Hover Guard & Eye-Level Search Bar** | **Built-in (Vertical Center)** | Locks the search input right at vertical eye-level in the middle of the screen so the result list shrinks upward toward the search bar without moving where you type. |
-| **Ocean Cyan / Kelp / Reef Accent Border** | **Ocean Cyan (`2px`, `18px` radius)** | Features a customizable high-contrast accent border and selected-row highlight with 1-click presets (*Ocean Cyan*, *Kelp Emerald*, *Gruvbox Amber*, *Coral Red*) and **Sync Color Across Suite**. |
+| **Ocean Cyan / Kelp / Reef Accent Border** | **Ocean Cyan (`2px`, `18px` radius)** | Features a customizable high-contrast accent border, adaptive Light & Dark GNOME theme styling, and selected-row highlight with 1-click presets (*Gruvbox Amber*, *Kelp Emerald*, *Ocean Cyan*, *Coral Red*, *Custom Color*) and **Sync Color Across Suite**. |
 
 ---
 
 ## Quick Install
 
-Download `tide@studio2201.github.io.shell-extension.zip` from [**GitHub Releases (`v1.2.2`)**](https://github.com/studio2201/tide/releases/latest):
+Download `tide@studio2201.github.io.shell-extension.zip` from [**GitHub Releases (`v1.3.0`)**](https://github.com/studio2201/tide/releases/latest):
 
 ```bash
 gnome-extensions install --force tide@studio2201.github.io.shell-extension.zip
@@ -52,8 +52,8 @@ gnome-extensions prefs tide@studio2201.github.io
 | Tab | Controls Included |
 | :--- | :--- |
 | **1. Launcher & Search** | **Super Key Action** (`Tide Application & Window Launcher`, `GNOME Activities Overview`, `GNOME Overview Application Grid`), **Launch with `Super+Enter` Shortcut** toggle (`<Super>Return` / `<Super>KP_Enter`), **Clear Search Query When Opening** toggle, **Close Launcher on Outside Click** toggle, **Search Open Windows Across Workspaces** toggle, **Sort Applications by Recent Usage** toggle, **Maximum Search Results** (`3–15`, default `9`), **Show Application Descriptions & Workspace Subtitles** toggle, **Show `Ctrl+1..Ctrl+9` Quick-Launch Badges** toggle, and **Reset to Tide Defaults**. |
-| **2. Appearance & Styling** | **Launcher Dialog Width** (`480–960 px`, default `680 px`), **Result Application Icon Size** (`24–64 px`, default `32 px`), **Dialog Surface Opacity** (`60–100%`, default `96%`), **Show Launcher Accent Border** toggle, **Accent Border Color** picker, **Quick Color Presets** (*Ocean Cyan*, *Kelp Emerald*, *Gruvbox Amber*, *Coral Red*), **Sync Color Across Suite** (`Sync Suite Color`), **Border Width** (`0–8 px`, default `2 px`), and **Border Corner Radius** (`0–36 px`, default 18 px). |
-| **3. About & Support** | Release version (`v1.2.2`), `GPL-3.0-or-later` license & `icesx` / `ManeLippert` (`Pop Launcher Super-Key Standalone`) attribution, **Star Tide on GitHub**, **Tuition, Not Coffee — Help send my daughter to college**, **Project Website**, and **Report an Issue**. |
+| **2. Appearance & Styling** | **Launcher Dialog Width** (`480–960 px`, default `680 px`), **Result Application Icon Size** (`24–64 px`, default `32 px`), **Dialog Surface Opacity** (`60–100%`, default `96%`), **Show Launcher Accent Border** toggle, **Accent Border Color** picker, **Quick Color Presets** (*Gruvbox Amber*, *Kelp Emerald*, *Ocean Cyan*, *Coral Red*, *Custom Color*), **Sync Color Across Suite** (`Sync Suite Color`), **Border Width** (`0–8 px`, default `2 px`), and **Border Corner Radius** (`0–36 px`, default 18 px). |
+| **3. About & Support** | Release version (`v1.3.0`), `GPL-3.0-or-later` license & `icesx` / `ManeLippert` (`Pop Launcher Super-Key Standalone`) attribution, **Star Tide on GitHub**, **Tuition, Not Coffee — Help send my daughter to college**, **Project Website**, and **Report an Issue**. |
 
 ---
 

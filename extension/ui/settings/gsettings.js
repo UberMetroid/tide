@@ -1,7 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Data-driven GSettings wrapper for Tide Super-key launcher behavior, search, and modal styling.
 
+import Gio from 'gi://Gio';
 import { format_rgba, parse_rgba } from './color.js';
+
+const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
+const INTERFACE_KEY = 'gtk-theme';
+
+function settings_new_schema(schema) {
+    const source = Gio.SettingsSchemaSource.get_default();
+    if (!source) return null;
+    return source.lookup(schema, true) ? new Gio.Settings({ schema_id: schema }) : null;
+}
 
 export const OVERLAY_KEY_ACTIONS = Object.freeze(['launcher', 'overview', 'app-grid']);
 export const DEFAULT_TOGGLE_SHORTCUTS = Object.freeze(['<Super>Return', '<Super>KP_Enter']);
@@ -36,6 +46,16 @@ export class ExtensionSettings {
         this.gio = gio_settings;
         this._schema = gio_settings?.settings_schema ?? null;
         this._keys = new Map();
+        this.int = settings_new_schema(INTERFACE_SCHEMA);
+    }
+
+    is_dark() {
+        if (!this.int) return true;
+        const theme = this.int.get_string(INTERFACE_KEY).toLowerCase();
+        const scheme = this.int.settings_schema?.has_key('color-scheme')
+            ? this.int.get_string('color-scheme')
+            : '';
+        return theme.endsWith('dark') || theme.endsWith('inverse') || scheme === 'prefer-dark';
     }
 
     _has(key) {

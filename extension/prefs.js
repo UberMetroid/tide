@@ -103,7 +103,7 @@ export function build_launcher_and_search_page(ext_settings, settings, signals) 
     const reset_btn = new Gtk.Button({
         label: 'Reset Defaults',
         valign: Gtk.Align.CENTER,
-        css_classes: ['suggested-action'],
+        css_classes: ['destructive-action', 'pill'],
     });
     reset_btn.connect('clicked', () => settings.reset_defaults());
     reset_row.add_suffix(reset_btn);

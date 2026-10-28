@@ -124,6 +124,9 @@ export class LauncherManager {
     }
 
     _connect_settings() {
+        if (this.settings?.int) {
+            this._int_id = this.settings.int.connect('changed', () => this._schedule_style_refresh());
+        }
         this._settings_id = this.ext_settings.connect('changed', (_s, key) => {
             if (key === 'overlay-key-action') {
                 if (this._launcher?.visible) this._launcher.hide();
@@ -197,6 +200,10 @@ export class LauncherManager {
                 global.display.unblock_signal_handler(this._orig_overlay_key_id);
             }
             this._orig_overlay_key_id = 0;
+        }
+        if (this._int_id > 0) {
+            this.settings?.int?.disconnect(this._int_id);
+            this._int_id = 0;
         }
         if (this._settings_id > 0) {
             this.ext_settings?.disconnect(this._settings_id);

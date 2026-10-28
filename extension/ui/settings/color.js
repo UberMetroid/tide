@@ -7,11 +7,11 @@ import Gio from 'gi://Gio';
 const DEFAULT_RGBA = Object.freeze({ red: 106, green: 215, blue: 225, alpha: 1.0 });
 
 export const SUITE_COLOR_TARGETS = Object.freeze([
-    Object.freeze({ uuid: 'coral@studio2201.github.io', schema_id: 'org.gnome.shell.extensions.coral', key: 'border-color-rgba' }),
-    Object.freeze({ uuid: 'kelp@studio2201.github.io', schema_id: 'org.gnome.shell.extensions.kelp', key: 'hint-color-rgba' }),
-    Object.freeze({ uuid: 'reef@studio2201.github.io', schema_id: 'org.gnome.shell.extensions.reef', key: 'border-color-rgba' }),
-    Object.freeze({ uuid: 'seabed@studio2201.github.io', schema_id: 'org.gnome.shell.extensions.seabed', key: 'border-color-rgba' }),
-    Object.freeze({ uuid: 'tide@studio2201.github.io', schema_id: 'org.gnome.shell.extensions.tide', key: 'border-color-rgba' }),
+    Object.freeze(['coral@studio2201.github.io', 'org.gnome.shell.extensions.coral', 'border-color-rgba']),
+    Object.freeze(['kelp@studio2201.github.io', 'org.gnome.shell.extensions.kelp', 'hint-color-rgba']),
+    Object.freeze(['reef@studio2201.github.io', 'org.gnome.shell.extensions.reef', 'border-color-rgba']),
+    Object.freeze(['seabed@studio2201.github.io', 'org.gnome.shell.extensions.seabed', 'border-color-rgba']),
+    Object.freeze(['tide@studio2201.github.io', 'org.gnome.shell.extensions.tide', 'border-color-rgba']),
 ]);
 
 function clamp_byte(v) {
@@ -30,9 +30,9 @@ export function parse_rgba(input) {
     if (typeof input !== 'string') return { ...DEFAULT_RGBA };
     const s = input.trim();
 
-    if (s.startsWith('#')) {
+    if (/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) {
         const hex = s.slice(1);
-        if (/^[0-9a-fA-F]{3,4}$/.test(hex)) {
+        if (hex.length <= 4) {
             const alpha = hex.length === 4 ? parseInt(hex[3] + hex[3], 16) / 255 : 1.0;
             return {
                 red: clamp_byte(parseInt(hex[0] + hex[0], 16)),
@@ -41,25 +41,28 @@ export function parse_rgba(input) {
                 alpha: clamp_alpha(alpha),
             };
         }
-        if (/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(hex)) {
-            const alpha = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1.0;
-            return {
-                red: clamp_byte(parseInt(hex.slice(0, 2), 16)),
-                green: clamp_byte(parseInt(hex.slice(2, 4), 16)),
-                blue: clamp_byte(parseInt(hex.slice(4, 6), 16)),
-                alpha: clamp_alpha(alpha),
-            };
-        }
+        const alpha = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1.0;
+        return {
+            red: clamp_byte(parseInt(hex.slice(0, 2), 16)),
+            green: clamp_byte(parseInt(hex.slice(2, 4), 16)),
+            blue: clamp_byte(parseInt(hex.slice(4, 6), 16)),
+            alpha: clamp_alpha(alpha),
+        };
     }
 
     const num = '[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:e[-+]?\\d+)?';
-    const match = s.match(new RegExp(`^rgba?\\(\\s*(${num})\\s*,\\s*(${num})\\s*,\\s*(${num})(?:\\s*,\\s*(${num}))?\\s*\\)$`, 'i'));
+    const match = s.match(new RegExp(`^rgba?\\(\\s*(${num})\\s*,\\s*(${num})\\s*,\\s*(${num})(?:\\s*,\\s*(${num}%?))?\\s*\\)$`, 'i'));
     if (match) {
+        let alpha = 1.0;
+        if (match[4] !== undefined) {
+            const raw_a = match[4];
+            alpha = raw_a.endsWith('%') ? parseFloat(raw_a) / 100 : parseFloat(raw_a);
+        }
         return {
             red: clamp_byte(parseFloat(match[1])),
             green: clamp_byte(parseFloat(match[2])),
             blue: clamp_byte(parseFloat(match[3])),
-            alpha: match[4] !== undefined ? clamp_alpha(parseFloat(match[4])) : 1.0,
+            alpha: clamp_alpha(alpha),
         };
     }
 
@@ -67,22 +70,24 @@ export function parse_rgba(input) {
 }
 
 export function format_rgba(rgba) {
-    const r = clamp_byte(rgba.red);
-    const g = clamp_byte(rgba.green);
-    const b = clamp_byte(rgba.blue);
-    const a = clamp_alpha(rgba.alpha);
+    const src = rgba && typeof rgba === 'object' ? rgba : DEFAULT_RGBA;
+    const r = clamp_byte(src.red);
+    const g = clamp_byte(src.green);
+    const b = clamp_byte(src.blue);
+    const a = clamp_alpha(src.alpha);
     return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 export function is_dark_rgba(rgba) {
+    const src = rgba && typeof rgba === 'object' ? rgba : DEFAULT_RGBA;
     const to_linear = (channel) => {
         const c = clamp_byte(channel) / 255;
         return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     };
     const luminance =
-        0.2126 * to_linear(rgba.red) +
-        0.7152 * to_linear(rgba.green) +
-        0.0722 * to_linear(rgba.blue);
+        0.2126 * to_linear(src.red) +
+        0.7152 * to_linear(src.green) +
+        0.0722 * to_linear(src.blue);
     return luminance <= 0.179;
 }
 
@@ -93,27 +98,26 @@ export function text_color_for_css(css_color) {
 
 export function sync_color_across_suite(css_color, ext_base_dir = null, backend = null) {
     const normalized = format_rgba(parse_rgba(css_color));
-    const base_dir = typeof ext_base_dir === 'string' && ext_base_dir.length > 0
-        ? ext_base_dir
-        : GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell', 'extensions']);
-    const default_source = Gio.SettingsSchemaSource.get_default();
+    const base_dir = ext_base_dir || GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell', 'extensions']);
+    const default_src = Gio.SettingsSchemaSource.get_default();
     let updated = 0;
-
-    for (const target of SUITE_COLOR_TARGETS) {
-        const schema_dir = GLib.build_filenamev([base_dir, target.uuid, 'schemas']);
+    for (let i = 0; i < SUITE_COLOR_TARGETS.length; i += 1) {
+        const [uuid, schema_id, key] = SUITE_COLOR_TARGETS[i];
+        const schema_dir = GLib.build_filenamev([base_dir, uuid, 'schemas']);
         const compiled = GLib.build_filenamev([schema_dir, 'gschemas.compiled']);
-        if (!GLib.file_test(compiled, GLib.FileTest.EXISTS)) continue;
+        if (!GLib.file_test(compiled, GLib.FileTest.IS_REGULAR)) continue;
         try {
-            const source = Gio.SettingsSchemaSource.new_from_directory(schema_dir, default_source, false);
-            const schema = source.lookup(target.schema_id, true);
-            if (!schema || !schema.has_key(target.key)) continue;
-            const gsettings = backend
+            const src = Gio.SettingsSchemaSource.new_from_directory(schema_dir, default_src, false);
+            const schema = src.lookup(schema_id, true);
+            if (!schema || !schema.has_key(key)) continue;
+            const gs = backend
                 ? new Gio.Settings({ settings_schema: schema, backend })
                 : new Gio.Settings({ settings_schema: schema });
-            if (gsettings.set_string(target.key, normalized)) updated += 1;
-        } catch (_e) {
-            continue;
-        }
+            if (gs.is_writable(key)) {
+                gs.set_string(key, normalized);
+                updated += 1;
+            }
+        } catch (_e) { /* skip unavailable extension schema */ }
     }
     Gio.Settings.sync();
     return updated;

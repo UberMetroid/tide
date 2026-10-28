@@ -119,7 +119,7 @@ function verify_process_boundaries_and_invariants() {
         '[tide] style-refresh', 'block_signal_handler', 'unblock_signal_handler', 'allowKeybinding', 'stickykeys-enable',
         'addKeybinding', 'removeKeybinding', 'SYSTEM_MODAL', 'name="enable-super-enter"', 'name="toggle-launcher"',
         '"45"', '"50"', '"settings-schema": "org.gnome.shell.extensions.tide"', 'name="overlay-key-action"',
-        'name="search-open-windows"', '1.2.2', '"name": "Studio 2201: Tide (App Launcher)"', 'Sync Color Across Suite', 'sync_color_across_suite',
+        'name="search-open-windows"', '1.3.0', '"name": "Studio 2201: Tide (App Launcher)"', 'Sync Color Across Suite', 'sync_color_across_suite',
         'this.unload_theme()', 'load_stylesheet(file)', 'Support &amp; Community',
         'ensureActorVisibleInScrollView', 'animationUtils.js', 'signal_handler_is_connected', 'Clutter.ActorAlign.START',
     ];

@@ -26,6 +26,14 @@
     selected-color: #ffffff;
 }
 
+.tide-launcher-light .tide-launcher-entry {
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #182026;
+    caret-color: #182026;
+    selected-color: #ffffff;
+}
+
 .tide-launcher-prefs-button {
     min-width: 40px;
     min-height: 40px;
@@ -39,6 +47,17 @@
 .tide-launcher-prefs-button:hover {
     background-color: rgba(255, 255, 255, 0.14);
     color: #ffffff;
+}
+
+.tide-launcher-light .tide-launcher-prefs-button {
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgba(24, 32, 38, 0.85);
+}
+
+.tide-launcher-light .tide-launcher-prefs-button:hover {
+    background-color: rgba(0, 0, 0, 0.12);
+    color: #182026;
 }
 
 .tide-launcher-scroll {
@@ -58,6 +77,10 @@
     transition-duration: 100ms;
 }
 
+.tide-launcher-light .tide-launcher-result {
+    color: #182026;
+}
+
 .tide-launcher-result:hover,
 .tide-launcher-result.selected {
     background-color: rgba(106, 215, 225, 0.18);
@@ -74,9 +97,17 @@
     font-weight: 600;
 }
 
+.tide-launcher-light .tide-launcher-result-name {
+    color: #182026;
+}
+
 .tide-launcher-result-description {
     color: rgba(255, 255, 255, 0.68);
     font-size: 12px;
+}
+
+.tide-launcher-light .tide-launcher-result-description {
+    color: rgba(24, 32, 38, 0.68);
 }
 
 .tide-launcher-result-badge {
@@ -88,8 +119,17 @@
     font-weight: 600;
 }
 
+.tide-launcher-light .tide-launcher-result-badge {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: rgba(24, 32, 38, 0.80);
+}
+
 .tide-launcher-empty {
     padding: 18px;
     color: rgba(255, 255, 255, 0.65);
     font-size: 14px;
+}
+
+.tide-launcher-light .tide-launcher-empty {
+    color: rgba(24, 32, 38, 0.65);
 }
